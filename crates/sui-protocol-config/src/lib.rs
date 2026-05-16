@@ -32,7 +32,7 @@ use tracing::{info, warn};
 
 /// The minimum and maximum protocol versions supported by this build.
 const MIN_PROTOCOL_VERSION: u64 = 1;
-const MAX_PROTOCOL_VERSION: u64 = 122;
+const MAX_PROTOCOL_VERSION: u64 = 123;
 
 const TESTNET_USDC: &str =
     "0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC";
@@ -580,6 +580,10 @@ struct FeatureFlags {
     // Enable the poseidon hash function
     #[serde(skip_serializing_if = "is_false")]
     enable_poseidon: bool,
+
+    // Enable the Halo2 KZG proof verifier.
+    #[serde(skip_serializing_if = "is_false")]
+    enable_halo2_kzg_verifier: bool,
 
     // If true, enable the coin deny list.
     #[serde(skip_serializing_if = "is_false")]
@@ -1677,6 +1681,15 @@ pub struct ProtocolConfig {
     groth16_verify_groth16_proof_internal_bn254_cost_per_public_input: Option<u64>,
     groth16_verify_groth16_proof_internal_public_input_cost_per_byte: Option<u64>,
 
+    // halo2_kzg::verify_proof_internal
+    halo2_kzg_verify_proof_internal_cost_base: Option<u64>,
+    halo2_kzg_verify_proof_internal_params_cost_per_byte: Option<u64>,
+    halo2_kzg_verify_proof_internal_vk_cost_per_byte: Option<u64>,
+    halo2_kzg_verify_proof_internal_circuit_info_cost_per_byte: Option<u64>,
+    halo2_kzg_verify_proof_internal_public_input_cost_per_byte: Option<u64>,
+    halo2_kzg_verify_proof_internal_proof_cost_per_byte: Option<u64>,
+    halo2_kzg_verify_proof_internal_cost_per_public_input: Option<u64>,
+
     // hash::blake2b256
     hash_blake2b256_cost_base: Option<u64>,
     hash_blake2b256_data_cost_per_byte: Option<u64>,
@@ -2235,6 +2248,10 @@ impl ProtocolConfig {
 
     pub fn enable_poseidon(&self) -> bool {
         self.feature_flags.enable_poseidon
+    }
+
+    pub fn enable_halo2_kzg_verifier(&self) -> bool {
+        self.feature_flags.enable_halo2_kzg_verifier
     }
 
     pub fn enable_coin_deny_list_v1(&self) -> bool {
@@ -3173,6 +3190,15 @@ impl ProtocolConfig {
             groth16_verify_groth16_proof_internal_bn254_cost_base: Some(52),
             groth16_verify_groth16_proof_internal_bn254_cost_per_public_input: Some(2),
             groth16_verify_groth16_proof_internal_public_input_cost_per_byte: Some(2),
+
+            // halo2_kzg::verify_proof_internal
+            halo2_kzg_verify_proof_internal_cost_base: None,
+            halo2_kzg_verify_proof_internal_params_cost_per_byte: None,
+            halo2_kzg_verify_proof_internal_vk_cost_per_byte: None,
+            halo2_kzg_verify_proof_internal_circuit_info_cost_per_byte: None,
+            halo2_kzg_verify_proof_internal_public_input_cost_per_byte: None,
+            halo2_kzg_verify_proof_internal_proof_cost_per_byte: None,
+            halo2_kzg_verify_proof_internal_cost_per_public_input: None,
 
             // hash::blake2b256
             hash_blake2b256_cost_base: Some(52),
@@ -4863,6 +4889,18 @@ impl ProtocolConfig {
                     cfg.gasless_max_tx_size_bytes = Some(16 * 1024);
                     cfg.gasless_max_tps = Some(300);
                     cfg.gasless_max_computation_units = Some(5_000);
+                }
+                123 => {
+                    if chain != Chain::Mainnet && chain != Chain::Testnet {
+                        cfg.feature_flags.enable_halo2_kzg_verifier = true;
+                    }
+                    cfg.halo2_kzg_verify_proof_internal_cost_base = Some(200_000);
+                    cfg.halo2_kzg_verify_proof_internal_params_cost_per_byte = Some(2);
+                    cfg.halo2_kzg_verify_proof_internal_vk_cost_per_byte = Some(2);
+                    cfg.halo2_kzg_verify_proof_internal_circuit_info_cost_per_byte = Some(2);
+                    cfg.halo2_kzg_verify_proof_internal_public_input_cost_per_byte = Some(2);
+                    cfg.halo2_kzg_verify_proof_internal_proof_cost_per_byte = Some(4);
+                    cfg.halo2_kzg_verify_proof_internal_cost_per_public_input = Some(10_000);
                 }
                 // Use this template when making changes:
                 //
