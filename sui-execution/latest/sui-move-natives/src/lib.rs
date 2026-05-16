@@ -4,7 +4,7 @@
 use self::{
     address::{AddressFromBytesCostParams, AddressFromU256CostParams, AddressToU256CostParams},
     config::ConfigReadSettingImplCostParams,
-    crypto::{bls12381, ecdsa_k1, ecdsa_r1, ecvrf, ed25519, groth16, hash, hmac},
+    crypto::{bls12381, ecdsa_k1, ecdsa_r1, ecvrf, ed25519, groth16, halo2_kzg, hash, hmac},
     crypto::{
         bls12381::{Bls12381Bls12381MinPkVerifyCostParams, Bls12381Bls12381MinSigVerifyCostParams},
         ecdsa_k1::{
@@ -17,6 +17,7 @@ use self::{
         groth16::{
             Groth16PrepareVerifyingKeyCostParams, Groth16VerifyGroth16ProofInternalCostParams,
         },
+        halo2_kzg::Halo2KzgVerifyProofInternalCostParams,
         hash::{HashBlake2b256CostParams, HashKeccak256CostParams},
         hmac::HmacHmacSha3256CostParams,
         poseidon,
@@ -175,6 +176,9 @@ pub struct NativesCostTable {
     pub groth16_prepare_verifying_key_cost_params: Groth16PrepareVerifyingKeyCostParams,
     pub groth16_verify_groth16_proof_internal_cost_params:
         Groth16VerifyGroth16ProofInternalCostParams,
+
+    // halo2_kzg
+    pub halo2_kzg_verify_proof_internal_cost_params: Halo2KzgVerifyProofInternalCostParams,
 
     // hash
     pub hash_blake2b256_cost_params: HashBlake2b256CostParams,
@@ -594,6 +598,36 @@ impl NativesCostTable {
                             .groth16_verify_groth16_proof_internal_public_input_cost_per_byte()
                             .into(),
                 },
+            halo2_kzg_verify_proof_internal_cost_params: Halo2KzgVerifyProofInternalCostParams {
+                halo2_kzg_verify_proof_internal_cost_base: protocol_config
+                    .halo2_kzg_verify_proof_internal_cost_base_as_option()
+                    .unwrap_or(0)
+                    .into(),
+                halo2_kzg_verify_proof_internal_params_cost_per_byte: protocol_config
+                    .halo2_kzg_verify_proof_internal_params_cost_per_byte_as_option()
+                    .unwrap_or(0)
+                    .into(),
+                halo2_kzg_verify_proof_internal_vk_cost_per_byte: protocol_config
+                    .halo2_kzg_verify_proof_internal_vk_cost_per_byte_as_option()
+                    .unwrap_or(0)
+                    .into(),
+                halo2_kzg_verify_proof_internal_circuit_info_cost_per_byte: protocol_config
+                    .halo2_kzg_verify_proof_internal_circuit_info_cost_per_byte_as_option()
+                    .unwrap_or(0)
+                    .into(),
+                halo2_kzg_verify_proof_internal_public_input_cost_per_byte: protocol_config
+                    .halo2_kzg_verify_proof_internal_public_input_cost_per_byte_as_option()
+                    .unwrap_or(0)
+                    .into(),
+                halo2_kzg_verify_proof_internal_proof_cost_per_byte: protocol_config
+                    .halo2_kzg_verify_proof_internal_proof_cost_per_byte_as_option()
+                    .unwrap_or(0)
+                    .into(),
+                halo2_kzg_verify_proof_internal_cost_per_public_input: protocol_config
+                    .halo2_kzg_verify_proof_internal_cost_per_public_input_as_option()
+                    .unwrap_or(0)
+                    .into(),
+            },
             hmac_hmac_sha3_256_cost_params: HmacHmacSha3256CostParams {
                 hmac_hmac_sha3_256_cost_base: protocol_config.hmac_hmac_sha3_256_cost_base().into(),
                 hmac_hmac_sha3_256_input_cost_per_byte: protocol_config
@@ -1043,6 +1077,11 @@ pub fn all_natives(silent: bool, protocol_config: &ProtocolConfig) -> NativeFunc
             "groth16",
             "prepare_verifying_key_internal",
             make_native!(groth16::prepare_verifying_key_internal),
+        ),
+        (
+            "halo2_kzg",
+            "verify_proof_internal",
+            make_native!(halo2_kzg::verify_proof_internal),
         ),
         ("hmac", "hmac_sha3_256", make_native!(hmac::hmac_sha3_256)),
         ("hash", "keccak256", make_native!(hash::keccak256)),
