@@ -32,7 +32,7 @@ use tracing::{info, warn};
 
 /// The minimum and maximum protocol versions supported by this build.
 const MIN_PROTOCOL_VERSION: u64 = 1;
-const MAX_PROTOCOL_VERSION: u64 = 122;
+const MAX_PROTOCOL_VERSION: u64 = 123;
 
 const TESTNET_USDC: &str =
     "0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC";
@@ -596,6 +596,10 @@ struct FeatureFlags {
     // Enable group operations for Ristretto255
     #[serde(skip_serializing_if = "is_false")]
     enable_ristretto255_group_ops: bool,
+
+    // Enable group operations for BN254.
+    #[serde(skip_serializing_if = "is_false")]
+    enable_bn254_group_ops: bool,
 
     // Enable native functions for group operations.
     #[serde(skip_serializing_if = "is_false")]
@@ -1739,6 +1743,33 @@ pub struct ProtocolConfig {
     group_ops_ristretto_scalar_div_cost: Option<u64>,
     group_ops_ristretto_point_div_cost: Option<u64>,
 
+    group_ops_bn254_decode_scalar_cost: Option<u64>,
+    group_ops_bn254_decode_g1_cost: Option<u64>,
+    group_ops_bn254_decode_g2_cost: Option<u64>,
+    group_ops_bn254_decode_gt_cost: Option<u64>,
+    group_ops_bn254_scalar_add_cost: Option<u64>,
+    group_ops_bn254_g1_add_cost: Option<u64>,
+    group_ops_bn254_g2_add_cost: Option<u64>,
+    group_ops_bn254_gt_add_cost: Option<u64>,
+    group_ops_bn254_scalar_sub_cost: Option<u64>,
+    group_ops_bn254_g1_sub_cost: Option<u64>,
+    group_ops_bn254_g2_sub_cost: Option<u64>,
+    group_ops_bn254_gt_sub_cost: Option<u64>,
+    group_ops_bn254_scalar_mul_cost: Option<u64>,
+    group_ops_bn254_g1_mul_cost: Option<u64>,
+    group_ops_bn254_g2_mul_cost: Option<u64>,
+    group_ops_bn254_gt_mul_cost: Option<u64>,
+    group_ops_bn254_scalar_div_cost: Option<u64>,
+    group_ops_bn254_g1_div_cost: Option<u64>,
+    group_ops_bn254_g2_div_cost: Option<u64>,
+    group_ops_bn254_gt_div_cost: Option<u64>,
+    group_ops_bn254_g1_msm_base_cost: Option<u64>,
+    group_ops_bn254_g2_msm_base_cost: Option<u64>,
+    group_ops_bn254_g1_msm_base_cost_per_input: Option<u64>,
+    group_ops_bn254_g2_msm_base_cost_per_input: Option<u64>,
+    group_ops_bn254_msm_max_len: Option<u32>,
+    group_ops_bn254_pairing_cost: Option<u64>,
+
     verify_bulletproofs_ristretto255_base_cost: Option<u64>,
     verify_bulletproofs_ristretto255_cost_per_bit_and_commitment: Option<u64>,
 
@@ -2303,6 +2334,10 @@ impl ProtocolConfig {
 
     pub fn enable_ristretto255_group_ops(&self) -> bool {
         self.feature_flags.enable_ristretto255_group_ops
+    }
+
+    pub fn enable_bn254_group_ops(&self) -> bool {
+        self.feature_flags.enable_bn254_group_ops
     }
 
     pub fn enable_verify_bulletproofs_ristretto255(&self) -> bool {
@@ -3239,6 +3274,33 @@ impl ProtocolConfig {
             group_ops_ristretto_point_mul_cost: None,
             group_ops_ristretto_scalar_div_cost: None,
             group_ops_ristretto_point_div_cost: None,
+
+            group_ops_bn254_decode_scalar_cost: None,
+            group_ops_bn254_decode_g1_cost: None,
+            group_ops_bn254_decode_g2_cost: None,
+            group_ops_bn254_decode_gt_cost: None,
+            group_ops_bn254_scalar_add_cost: None,
+            group_ops_bn254_g1_add_cost: None,
+            group_ops_bn254_g2_add_cost: None,
+            group_ops_bn254_gt_add_cost: None,
+            group_ops_bn254_scalar_sub_cost: None,
+            group_ops_bn254_g1_sub_cost: None,
+            group_ops_bn254_g2_sub_cost: None,
+            group_ops_bn254_gt_sub_cost: None,
+            group_ops_bn254_scalar_mul_cost: None,
+            group_ops_bn254_g1_mul_cost: None,
+            group_ops_bn254_g2_mul_cost: None,
+            group_ops_bn254_gt_mul_cost: None,
+            group_ops_bn254_scalar_div_cost: None,
+            group_ops_bn254_g1_div_cost: None,
+            group_ops_bn254_g2_div_cost: None,
+            group_ops_bn254_gt_div_cost: None,
+            group_ops_bn254_g1_msm_base_cost: None,
+            group_ops_bn254_g2_msm_base_cost: None,
+            group_ops_bn254_g1_msm_base_cost_per_input: None,
+            group_ops_bn254_g2_msm_base_cost_per_input: None,
+            group_ops_bn254_msm_max_len: None,
+            group_ops_bn254_pairing_cost: None,
 
             verify_bulletproofs_ristretto255_base_cost: None,
             verify_bulletproofs_ristretto255_cost_per_bit_and_commitment: None,
@@ -4863,6 +4925,43 @@ impl ProtocolConfig {
                     cfg.gasless_max_tx_size_bytes = Some(16 * 1024);
                     cfg.gasless_max_tps = Some(300);
                     cfg.gasless_max_computation_units = Some(5_000);
+                }
+                123 => {
+                    cfg.group_ops_bn254_decode_scalar_cost = Some(7);
+                    cfg.group_ops_bn254_decode_g1_cost = Some(2848);
+                    cfg.group_ops_bn254_decode_g2_cost = Some(3770);
+                    cfg.group_ops_bn254_decode_gt_cost = Some(3068);
+
+                    cfg.group_ops_bn254_scalar_add_cost = Some(10);
+                    cfg.group_ops_bn254_g1_add_cost = Some(1556);
+                    cfg.group_ops_bn254_g2_add_cost = Some(3048);
+                    cfg.group_ops_bn254_gt_add_cost = Some(188);
+
+                    cfg.group_ops_bn254_scalar_sub_cost = Some(10);
+                    cfg.group_ops_bn254_g1_sub_cost = Some(1550);
+                    cfg.group_ops_bn254_g2_sub_cost = Some(3019);
+                    cfg.group_ops_bn254_gt_sub_cost = Some(497);
+
+                    cfg.group_ops_bn254_scalar_mul_cost = Some(11);
+                    cfg.group_ops_bn254_g1_mul_cost = Some(4842);
+                    cfg.group_ops_bn254_g2_mul_cost = Some(9108);
+                    cfg.group_ops_bn254_gt_mul_cost = Some(27490);
+
+                    cfg.group_ops_bn254_scalar_div_cost = Some(91);
+                    cfg.group_ops_bn254_g1_div_cost = Some(5091);
+                    cfg.group_ops_bn254_g2_div_cost = Some(9206);
+                    cfg.group_ops_bn254_gt_div_cost = Some(27804);
+
+                    cfg.group_ops_bn254_g1_msm_base_cost = Some(62648);
+                    cfg.group_ops_bn254_g2_msm_base_cost = Some(131192);
+                    cfg.group_ops_bn254_g1_msm_base_cost_per_input = Some(1333);
+                    cfg.group_ops_bn254_g2_msm_base_cost_per_input = Some(3216);
+                    cfg.group_ops_bn254_msm_max_len = Some(32);
+                    cfg.group_ops_bn254_pairing_cost = Some(26897);
+
+                    if chain != Chain::Mainnet && chain != Chain::Testnet {
+                        cfg.feature_flags.enable_bn254_group_ops = true;
+                    }
                 }
                 // Use this template when making changes:
                 //

@@ -768,6 +768,82 @@ impl NativesCostTable {
                 ristretto_point_div_cost: protocol_config
                     .group_ops_ristretto_point_div_cost_as_option()
                     .map(Into::into),
+                bn254_decode_scalar_cost: protocol_config
+                    .group_ops_bn254_decode_scalar_cost_as_option()
+                    .map(Into::into),
+                bn254_decode_g1_cost: protocol_config
+                    .group_ops_bn254_decode_g1_cost_as_option()
+                    .map(Into::into),
+                bn254_decode_g2_cost: protocol_config
+                    .group_ops_bn254_decode_g2_cost_as_option()
+                    .map(Into::into),
+                bn254_decode_gt_cost: protocol_config
+                    .group_ops_bn254_decode_gt_cost_as_option()
+                    .map(Into::into),
+                bn254_scalar_add_cost: protocol_config
+                    .group_ops_bn254_scalar_add_cost_as_option()
+                    .map(Into::into),
+                bn254_g1_add_cost: protocol_config
+                    .group_ops_bn254_g1_add_cost_as_option()
+                    .map(Into::into),
+                bn254_g2_add_cost: protocol_config
+                    .group_ops_bn254_g2_add_cost_as_option()
+                    .map(Into::into),
+                bn254_gt_add_cost: protocol_config
+                    .group_ops_bn254_gt_add_cost_as_option()
+                    .map(Into::into),
+                bn254_scalar_sub_cost: protocol_config
+                    .group_ops_bn254_scalar_sub_cost_as_option()
+                    .map(Into::into),
+                bn254_g1_sub_cost: protocol_config
+                    .group_ops_bn254_g1_sub_cost_as_option()
+                    .map(Into::into),
+                bn254_g2_sub_cost: protocol_config
+                    .group_ops_bn254_g2_sub_cost_as_option()
+                    .map(Into::into),
+                bn254_gt_sub_cost: protocol_config
+                    .group_ops_bn254_gt_sub_cost_as_option()
+                    .map(Into::into),
+                bn254_scalar_mul_cost: protocol_config
+                    .group_ops_bn254_scalar_mul_cost_as_option()
+                    .map(Into::into),
+                bn254_g1_mul_cost: protocol_config
+                    .group_ops_bn254_g1_mul_cost_as_option()
+                    .map(Into::into),
+                bn254_g2_mul_cost: protocol_config
+                    .group_ops_bn254_g2_mul_cost_as_option()
+                    .map(Into::into),
+                bn254_gt_mul_cost: protocol_config
+                    .group_ops_bn254_gt_mul_cost_as_option()
+                    .map(Into::into),
+                bn254_scalar_div_cost: protocol_config
+                    .group_ops_bn254_scalar_div_cost_as_option()
+                    .map(Into::into),
+                bn254_g1_div_cost: protocol_config
+                    .group_ops_bn254_g1_div_cost_as_option()
+                    .map(Into::into),
+                bn254_g2_div_cost: protocol_config
+                    .group_ops_bn254_g2_div_cost_as_option()
+                    .map(Into::into),
+                bn254_gt_div_cost: protocol_config
+                    .group_ops_bn254_gt_div_cost_as_option()
+                    .map(Into::into),
+                bn254_g1_msm_base_cost: protocol_config
+                    .group_ops_bn254_g1_msm_base_cost_as_option()
+                    .map(Into::into),
+                bn254_g2_msm_base_cost: protocol_config
+                    .group_ops_bn254_g2_msm_base_cost_as_option()
+                    .map(Into::into),
+                bn254_g1_msm_base_cost_per_input: protocol_config
+                    .group_ops_bn254_g1_msm_base_cost_per_input_as_option()
+                    .map(Into::into),
+                bn254_g2_msm_base_cost_per_input: protocol_config
+                    .group_ops_bn254_g2_msm_base_cost_per_input_as_option()
+                    .map(Into::into),
+                bn254_msm_max_len: protocol_config.group_ops_bn254_msm_max_len_as_option(),
+                bn254_pairing_cost: protocol_config
+                    .group_ops_bn254_pairing_cost_as_option()
+                    .map(Into::into),
             },
             vdf_cost_params: VDFCostParams {
                 vdf_verify_cost: protocol_config

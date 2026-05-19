@@ -5,7 +5,7 @@ use crate::{NativesCostTable, get_extension};
 use fastcrypto::error::{FastCryptoError, FastCryptoResult};
 use fastcrypto::groups::{
     FromTrustedByteArray, GroupElement, HashToGroupElement, MultiScalarMul, Pairing,
-    bls12381 as bls, ristretto255 as ristretto,
+    bls12381 as bls, bn254 as bn, ristretto255 as ristretto,
 };
 use fastcrypto::serde_helpers::ToFromByteArray;
 use move_binary_format::errors::{PartialVMError, PartialVMResult};
@@ -51,6 +51,12 @@ fn is_ristretto_supported(context: &NativeContext) -> PartialVMResult<bool> {
     Ok(get_extension!(context, ObjectRuntime)?
         .protocol_config
         .enable_ristretto255_group_ops())
+}
+
+fn is_bn254_supported(context: &NativeContext) -> PartialVMResult<bool> {
+    Ok(get_extension!(context, ObjectRuntime)?
+        .protocol_config
+        .enable_bn254_group_ops())
 }
 
 fn v2_native_charge(context: &NativeContext, cost: InternalGas) -> PartialVMResult<InternalGas> {
@@ -150,6 +156,32 @@ pub struct GroupOpsCostParams {
     // costs for decode, div, and encode output
     pub ristretto_scalar_div_cost: Option<InternalGas>,
     pub ristretto_point_div_cost: Option<InternalGas>,
+    pub bn254_decode_scalar_cost: Option<InternalGas>,
+    pub bn254_decode_g1_cost: Option<InternalGas>,
+    pub bn254_decode_g2_cost: Option<InternalGas>,
+    pub bn254_decode_gt_cost: Option<InternalGas>,
+    pub bn254_scalar_add_cost: Option<InternalGas>,
+    pub bn254_g1_add_cost: Option<InternalGas>,
+    pub bn254_g2_add_cost: Option<InternalGas>,
+    pub bn254_gt_add_cost: Option<InternalGas>,
+    pub bn254_scalar_sub_cost: Option<InternalGas>,
+    pub bn254_g1_sub_cost: Option<InternalGas>,
+    pub bn254_g2_sub_cost: Option<InternalGas>,
+    pub bn254_gt_sub_cost: Option<InternalGas>,
+    pub bn254_scalar_mul_cost: Option<InternalGas>,
+    pub bn254_g1_mul_cost: Option<InternalGas>,
+    pub bn254_g2_mul_cost: Option<InternalGas>,
+    pub bn254_gt_mul_cost: Option<InternalGas>,
+    pub bn254_scalar_div_cost: Option<InternalGas>,
+    pub bn254_g1_div_cost: Option<InternalGas>,
+    pub bn254_g2_div_cost: Option<InternalGas>,
+    pub bn254_gt_div_cost: Option<InternalGas>,
+    pub bn254_g1_msm_base_cost: Option<InternalGas>,
+    pub bn254_g2_msm_base_cost: Option<InternalGas>,
+    pub bn254_g1_msm_base_cost_per_input: Option<InternalGas>,
+    pub bn254_g2_msm_base_cost_per_input: Option<InternalGas>,
+    pub bn254_msm_max_len: Option<u32>,
+    pub bn254_pairing_cost: Option<InternalGas>,
 }
 
 macro_rules! native_charge_gas_early_exit_option {
@@ -176,6 +208,10 @@ enum Groups {
     BLS12381UncompressedG1 = 4,
     RistrettoScalar = 5,
     RistrettoPoint = 6,
+    BN254Scalar = 7,
+    BN254G1 = 8,
+    BN254G2 = 9,
+    BN254GT = 10,
 }
 
 impl Groups {
@@ -188,6 +224,10 @@ impl Groups {
             4 => Some(Groups::BLS12381UncompressedG1),
             5 => Some(Groups::RistrettoScalar),
             6 => Some(Groups::RistrettoPoint),
+            7 => Some(Groups::BN254Scalar),
+            8 => Some(Groups::BN254G1),
+            9 => Some(Groups::BN254G2),
+            10 => Some(Groups::BN254GT),
             _ => None,
         }
     }
@@ -289,6 +329,34 @@ pub fn internal_validate(
             native_charge_gas_early_exit_option!(context, cost_params.ristretto_decode_point_cost);
             parse_untrusted::<ristretto::RistrettoPoint, { ristretto::RISTRETTO_POINT_BYTE_LENGTH }>(&bytes).is_ok()
         }
+        Some(Groups::BN254Scalar) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(context, cost_params.bn254_decode_scalar_cost);
+            parse_untrusted::<bn::BN254Scalar, { bn::BN254_SCALAR_LENGTH }>(&bytes).is_ok()
+        }
+        Some(Groups::BN254G1) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(context, cost_params.bn254_decode_g1_cost);
+            parse_untrusted::<bn::BN254G1Element, { bn::BN254_G1_ELEMENT_BYTE_LENGTH }>(&bytes).is_ok()
+        }
+        Some(Groups::BN254G2) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(context, cost_params.bn254_decode_g2_cost);
+            parse_untrusted::<bn::BN254G2Element, { bn::BN254_G2_ELEMENT_BYTE_LENGTH }>(&bytes).is_ok()
+        }
+        Some(Groups::BN254GT) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(context, cost_params.bn254_decode_gt_cost);
+            parse_untrusted::<bn::BN254GTElement, { bn::BN254_GT_ELEMENT_BYTE_LENGTH }>(&bytes).is_ok()
+        }
         _ => false,
     };
 
@@ -365,6 +433,34 @@ pub fn internal_add(
                 &e2,
             )
         }
+        Some(Groups::BN254Scalar) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(context, cost_params.bn254_scalar_add_cost);
+            binary_op::<bn::BN254Scalar, { bn::BN254_SCALAR_LENGTH }>(|a, b| Ok(a + b), &e1, &e2)
+        }
+        Some(Groups::BN254G1) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(context, cost_params.bn254_g1_add_cost);
+            binary_op::<bn::BN254G1Element, { bn::BN254_G1_ELEMENT_BYTE_LENGTH }>(|a, b| Ok(a + b), &e1, &e2)
+        }
+        Some(Groups::BN254G2) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(context, cost_params.bn254_g2_add_cost);
+            binary_op::<bn::BN254G2Element, { bn::BN254_G2_ELEMENT_BYTE_LENGTH }>(|a, b| Ok(a + b), &e1, &e2)
+        }
+        Some(Groups::BN254GT) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(context, cost_params.bn254_gt_add_cost);
+            binary_op::<bn::BN254GTElement, { bn::BN254_GT_ELEMENT_BYTE_LENGTH }>(|a, b| Ok(a + b), &e1, &e2)
+        }
         _ => Err(FastCryptoError::InvalidInput),
     };
 
@@ -437,6 +533,34 @@ pub fn internal_sub(
                 &e1,
                 &e2,
             )
+        }
+        Some(Groups::BN254Scalar) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(context, cost_params.bn254_scalar_sub_cost);
+            binary_op::<bn::BN254Scalar, { bn::BN254_SCALAR_LENGTH }>(|a, b| Ok(a - b), &e1, &e2)
+        }
+        Some(Groups::BN254G1) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(context, cost_params.bn254_g1_sub_cost);
+            binary_op::<bn::BN254G1Element, { bn::BN254_G1_ELEMENT_BYTE_LENGTH }>(|a, b| Ok(a - b), &e1, &e2)
+        }
+        Some(Groups::BN254G2) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(context, cost_params.bn254_g2_sub_cost);
+            binary_op::<bn::BN254G2Element, { bn::BN254_G2_ELEMENT_BYTE_LENGTH }>(|a, b| Ok(a - b), &e1, &e2)
+        }
+        Some(Groups::BN254GT) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(context, cost_params.bn254_gt_sub_cost);
+            binary_op::<bn::BN254GTElement, { bn::BN254_GT_ELEMENT_BYTE_LENGTH }>(|a, b| Ok(a - b), &e1, &e2)
         }
         _ => Err(FastCryptoError::InvalidInput),
     };
@@ -527,6 +651,49 @@ pub fn internal_mul(
                 { ristretto::RISTRETTO_POINT_BYTE_LENGTH },
             >(|a, b| Ok(b * a), &e1, &e2)
         }
+        Some(Groups::BN254Scalar) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(context, cost_params.bn254_scalar_mul_cost);
+            binary_op::<bn::BN254Scalar, { bn::BN254_SCALAR_LENGTH }>(|a, b| Ok(b * a), &e1, &e2)
+        }
+        Some(Groups::BN254G1) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(context, cost_params.bn254_g1_mul_cost);
+            binary_op_diff::<
+                bn::BN254Scalar,
+                bn::BN254G1Element,
+                { bn::BN254_SCALAR_LENGTH },
+                { bn::BN254_G1_ELEMENT_BYTE_LENGTH },
+            >(|a, b| Ok(b * a), &e1, &e2)
+        }
+        Some(Groups::BN254G2) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(context, cost_params.bn254_g2_mul_cost);
+            binary_op_diff::<
+                bn::BN254Scalar,
+                bn::BN254G2Element,
+                { bn::BN254_SCALAR_LENGTH },
+                { bn::BN254_G2_ELEMENT_BYTE_LENGTH },
+            >(|a, b| Ok(b * a), &e1, &e2)
+        }
+        Some(Groups::BN254GT) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(context, cost_params.bn254_gt_mul_cost);
+            binary_op_diff::<
+                bn::BN254Scalar,
+                bn::BN254GTElement,
+                { bn::BN254_SCALAR_LENGTH },
+                { bn::BN254_GT_ELEMENT_BYTE_LENGTH },
+            >(|a, b| Ok(b * a), &e1, &e2)
+        }
         _ => Err(FastCryptoError::InvalidInput),
     };
 
@@ -614,6 +781,49 @@ pub fn internal_div(
                 ristretto::RistrettoPoint,
                 { ristretto::RISTRETTO_SCALAR_BYTE_LENGTH },
                 { ristretto::RISTRETTO_POINT_BYTE_LENGTH },
+            >(|a, b| b / a, &e1, &e2)
+        }
+        Some(Groups::BN254Scalar) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(context, cost_params.bn254_scalar_div_cost);
+            binary_op::<bn::BN254Scalar, { bn::BN254_SCALAR_LENGTH }>(|a, b| b / a, &e1, &e2)
+        }
+        Some(Groups::BN254G1) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(context, cost_params.bn254_g1_div_cost);
+            binary_op_diff::<
+                bn::BN254Scalar,
+                bn::BN254G1Element,
+                { bn::BN254_SCALAR_LENGTH },
+                { bn::BN254_G1_ELEMENT_BYTE_LENGTH },
+            >(|a, b| b / a, &e1, &e2)
+        }
+        Some(Groups::BN254G2) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(context, cost_params.bn254_g2_div_cost);
+            binary_op_diff::<
+                bn::BN254Scalar,
+                bn::BN254G2Element,
+                { bn::BN254_SCALAR_LENGTH },
+                { bn::BN254_G2_ELEMENT_BYTE_LENGTH },
+            >(|a, b| b / a, &e1, &e2)
+        }
+        Some(Groups::BN254GT) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(context, cost_params.bn254_gt_div_cost);
+            binary_op_diff::<
+                bn::BN254Scalar,
+                bn::BN254GTElement,
+                { bn::BN254_SCALAR_LENGTH },
+                { bn::BN254_GT_ELEMENT_BYTE_LENGTH },
             >(|a, b| b / a, &e1, &e2)
         }
         _ => Err(FastCryptoError::InvalidInput),
@@ -805,41 +1015,94 @@ pub fn internal_multi_scalar_mul(
         .group_ops_cost_params
         .clone();
 
-    let max_len = cost_params.bls12381_msm_max_len.ok_or_else(|| {
-        PartialVMError::new(StatusCode::UNKNOWN_INVARIANT_VIOLATION_ERROR)
-            .with_message("Max len for MSM is not set".to_string())
-    })?;
-
     // TODO: can potentially improve performance when some of the points are the generator.
     match Groups::from_u8(group_type) {
-        Some(Groups::BLS12381G1) => multi_scalar_mul::<
-            bls::G1Element,
-            { bls::Scalar::BYTE_LENGTH },
-            { bls::G1Element::BYTE_LENGTH },
-        >(
-            context,
-            cost_params.bls12381_decode_scalar_cost,
-            cost_params.bls12381_decode_g1_cost,
-            cost_params.bls12381_g1_msm_base_cost,
-            cost_params.bls12381_g1_msm_base_cost_per_input,
-            max_len,
-            scalars.as_ref(),
-            elements.as_ref(),
-        ),
-        Some(Groups::BLS12381G2) => multi_scalar_mul::<
-            bls::G2Element,
-            { bls::Scalar::BYTE_LENGTH },
-            { bls::G2Element::BYTE_LENGTH },
-        >(
-            context,
-            cost_params.bls12381_decode_scalar_cost,
-            cost_params.bls12381_decode_g2_cost,
-            cost_params.bls12381_g2_msm_base_cost,
-            cost_params.bls12381_g2_msm_base_cost_per_input,
-            max_len,
-            scalars.as_ref(),
-            elements.as_ref(),
-        ),
+        Some(Groups::BLS12381G1) => {
+            let max_len = cost_params.bls12381_msm_max_len.ok_or_else(|| {
+                PartialVMError::new(StatusCode::UNKNOWN_INVARIANT_VIOLATION_ERROR)
+                    .with_message("Max len for MSM is not set".to_string())
+            })?;
+            multi_scalar_mul::<
+                bls::G1Element,
+                { bls::Scalar::BYTE_LENGTH },
+                { bls::G1Element::BYTE_LENGTH },
+            >(
+                context,
+                cost_params.bls12381_decode_scalar_cost,
+                cost_params.bls12381_decode_g1_cost,
+                cost_params.bls12381_g1_msm_base_cost,
+                cost_params.bls12381_g1_msm_base_cost_per_input,
+                max_len,
+                scalars.as_ref(),
+                elements.as_ref(),
+            )
+        }
+        Some(Groups::BLS12381G2) => {
+            let max_len = cost_params.bls12381_msm_max_len.ok_or_else(|| {
+                PartialVMError::new(StatusCode::UNKNOWN_INVARIANT_VIOLATION_ERROR)
+                    .with_message("Max len for MSM is not set".to_string())
+            })?;
+            multi_scalar_mul::<
+                bls::G2Element,
+                { bls::Scalar::BYTE_LENGTH },
+                { bls::G2Element::BYTE_LENGTH },
+            >(
+                context,
+                cost_params.bls12381_decode_scalar_cost,
+                cost_params.bls12381_decode_g2_cost,
+                cost_params.bls12381_g2_msm_base_cost,
+                cost_params.bls12381_g2_msm_base_cost_per_input,
+                max_len,
+                scalars.as_ref(),
+                elements.as_ref(),
+            )
+        }
+        Some(Groups::BN254G1) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            let max_len = cost_params.bn254_msm_max_len.ok_or_else(|| {
+                PartialVMError::new(StatusCode::UNKNOWN_INVARIANT_VIOLATION_ERROR)
+                    .with_message("Max len for MSM is not set".to_string())
+            })?;
+            multi_scalar_mul::<
+                bn::BN254G1Element,
+                { bn::BN254_SCALAR_LENGTH },
+                { bn::BN254_G1_ELEMENT_BYTE_LENGTH },
+            >(
+                context,
+                cost_params.bn254_decode_scalar_cost,
+                cost_params.bn254_decode_g1_cost,
+                cost_params.bn254_g1_msm_base_cost,
+                cost_params.bn254_g1_msm_base_cost_per_input,
+                max_len,
+                scalars.as_ref(),
+                elements.as_ref(),
+            )
+        }
+        Some(Groups::BN254G2) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            let max_len = cost_params.bn254_msm_max_len.ok_or_else(|| {
+                PartialVMError::new(StatusCode::UNKNOWN_INVARIANT_VIOLATION_ERROR)
+                    .with_message("Max len for MSM is not set".to_string())
+            })?;
+            multi_scalar_mul::<
+                bn::BN254G2Element,
+                { bn::BN254_SCALAR_LENGTH },
+                { bn::BN254_G2_ELEMENT_BYTE_LENGTH },
+            >(
+                context,
+                cost_params.bn254_decode_scalar_cost,
+                cost_params.bn254_decode_g2_cost,
+                cost_params.bn254_g2_msm_base_cost,
+                cost_params.bn254_g2_msm_base_cost_per_input,
+                max_len,
+                scalars.as_ref(),
+                elements.as_ref(),
+            )
+        }
         _ => Ok(NativeResult::err(
             v2_native_charge(context, cost)?,
             INVALID_INPUT_ERROR,
@@ -884,6 +1147,20 @@ pub fn internal_pairing(
                     e3.to_byte_array().to_vec()
                 })
             })
+        }
+        Some(Groups::BN254G1) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(context, cost_params.bn254_pairing_cost);
+            parse_trusted::<bn::BN254G1Element, { bn::BN254_G1_ELEMENT_BYTE_LENGTH }>(&e1)
+                .and_then(|e1| {
+                    parse_trusted::<bn::BN254G2Element, { bn::BN254_G2_ELEMENT_BYTE_LENGTH }>(&e2)
+                        .map(|e2| {
+                            let e3 = e1.pairing(&e2);
+                            e3.to_byte_array().to_vec()
+                        })
+                })
         }
         _ => Err(FastCryptoError::InvalidInput),
     };
