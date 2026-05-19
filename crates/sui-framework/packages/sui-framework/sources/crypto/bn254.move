@@ -14,7 +14,7 @@ public struct G1 {}
 public struct G2 {}
 public struct GT {}
 
-// Scalars are encoded using big-endian byte order and are always 32 bytes,
+// Scalars are encoded using little-endian byte order and are always 32 bytes,
 // matching fastcrypto's BN254 group API. G1, G2, and GT encodings are defined
 // by the corresponding native `group_ops` implementation for these BN254 type
 // identifiers.
@@ -23,7 +23,7 @@ public struct GT {}
 const SCALAR_ZERO_BYTES: vector<u8> =
     x"0000000000000000000000000000000000000000000000000000000000000000";
 const SCALAR_ONE_BYTES: vector<u8> =
-    x"0000000000000000000000000000000000000000000000000000000000000001";
+    x"0100000000000000000000000000000000000000000000000000000000000000";
 
 // Const G1 elements.
 const G1_GENERATOR_BYTES: vector<u8> =
@@ -53,7 +53,7 @@ public fun scalar_from_bytes(bytes: &vector<u8>): Element<Scalar> {
 
 public fun scalar_from_u64(x: u64): Element<Scalar> {
     let mut bytes = SCALAR_ZERO_BYTES;
-    group_ops::set_as_prefix(x, true, &mut bytes);
+    group_ops::set_as_prefix(x, false, &mut bytes);
     group_ops::from_bytes(SCALAR_TYPE, bytes, true)
 }
 
