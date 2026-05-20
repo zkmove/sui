@@ -215,6 +215,63 @@ fun test_valid_g1_from_bytes() {
     assert!(group_ops::equal(&id, &bn254::g1_from_bytes(group_ops::bytes(&id))));
 }
 
+#[test]
+fun test_to_from_uncompressed_g1() {
+    let g = bn254::g1_generator();
+    let g_uncompressed = bn254::g1_to_uncompressed_g1(&g);
+    assert_eq!(64, group_ops::bytes(&g_uncompressed).length());
+    assert!(group_ops::equal(&g, &bn254::uncompressed_g1_to_g1(&g_uncompressed)));
+
+    let id = bn254::g1_identity();
+    let id_uncompressed = bn254::g1_to_uncompressed_g1(&id);
+    assert_eq!(64, group_ops::bytes(&id_uncompressed).length());
+    assert!(group_ops::equal(&id, &bn254::uncompressed_g1_to_g1(&id_uncompressed)));
+
+    let point = bn254::g1_mul(&bn254::scalar_from_u64(12345), &g);
+    let point_uncompressed = bn254::g1_to_uncompressed_g1(&point);
+    assert_eq!(64, group_ops::bytes(&point_uncompressed).length());
+    assert!(group_ops::equal(&point, &bn254::uncompressed_g1_to_g1(&point_uncompressed)));
+}
+
+#[test]
+fun test_valid_uncompressed_g1_from_bytes() {
+    let g = bn254::g1_generator();
+    let g_uncompressed = bn254::g1_to_uncompressed_g1(&g);
+    let g_from_bytes = bn254::uncompressed_g1_from_bytes(group_ops::bytes(&g_uncompressed));
+    assert!(group_ops::equal(&g_uncompressed, &g_from_bytes));
+    assert!(group_ops::equal(&g, &bn254::uncompressed_g1_to_g1(&g_from_bytes)));
+
+    let id = bn254::g1_identity();
+    let id_uncompressed = bn254::g1_to_uncompressed_g1(&id);
+    let id_from_bytes = bn254::uncompressed_g1_from_bytes(group_ops::bytes(&id_uncompressed));
+    assert!(group_ops::equal(&id_uncompressed, &id_from_bytes));
+    assert!(group_ops::equal(&id, &bn254::uncompressed_g1_to_g1(&id_from_bytes)));
+}
+
+#[test, expected_failure(abort_code = group_ops::EInvalidInput)]
+fun test_invalid_uncompressed_g1_empty() {
+    let _ = bn254::uncompressed_g1_from_bytes(&vector[]);
+}
+
+#[test, expected_failure(abort_code = group_ops::EInvalidInput)]
+fun test_invalid_uncompressed_g1_too_short() {
+    let mut bytes = *group_ops::bytes(&bn254::g1_to_uncompressed_g1(&bn254::g1_generator()));
+    bytes.pop_back();
+    let _ = bn254::uncompressed_g1_from_bytes(&bytes);
+}
+
+#[test, expected_failure(abort_code = group_ops::EInvalidInput)]
+fun test_invalid_uncompressed_g1_too_long() {
+    let mut bytes = *group_ops::bytes(&bn254::g1_to_uncompressed_g1(&bn254::g1_generator()));
+    bytes.push_back(0);
+    let _ = bn254::uncompressed_g1_from_bytes(&bytes);
+}
+
+#[test, expected_failure(abort_code = group_ops::EInvalidInput)]
+fun test_invalid_uncompressed_g1_compressed_bytes() {
+    let _ = bn254::uncompressed_g1_from_bytes(group_ops::bytes(&bn254::g1_generator()));
+}
+
 #[test, expected_failure(abort_code = group_ops::EInvalidInput)]
 fun test_invalid_g1_empty() {
     let _ = bn254::g1_from_bytes(&vector[]);

@@ -182,6 +182,8 @@ pub struct GroupOpsCostParams {
     pub bn254_g2_msm_base_cost_per_input: Option<InternalGas>,
     pub bn254_msm_max_len: Option<u32>,
     pub bn254_pairing_cost: Option<InternalGas>,
+    pub bn254_g1_to_uncompressed_g1_cost: Option<InternalGas>,
+    pub bn254_uncompressed_g1_to_g1_cost: Option<InternalGas>,
 }
 
 macro_rules! native_charge_gas_early_exit_option {
@@ -212,6 +214,7 @@ enum Groups {
     BN254G1 = 8,
     BN254G2 = 9,
     BN254GT = 10,
+    BN254UncompressedG1 = 11,
 }
 
 impl Groups {
@@ -228,6 +231,7 @@ impl Groups {
             8 => Some(Groups::BN254G1),
             9 => Some(Groups::BN254G2),
             10 => Some(Groups::BN254GT),
+            11 => Some(Groups::BN254UncompressedG1),
             _ => None,
         }
     }
@@ -243,6 +247,12 @@ fn parse_trusted<G: ToFromByteArray<S> + FromTrustedByteArray<S>, const S: usize
     e: &[u8],
 ) -> FastCryptoResult<G> {
     G::from_trusted_byte_array(e.try_into().map_err(|_| FastCryptoError::InvalidInput)?)
+}
+
+fn parse_bn254_g1_uncompressed(e: &[u8]) -> FastCryptoResult<bn::BN254G1Element> {
+    bn::BN254G1Element::from_uncompressed_byte_array(
+        e.try_into().map_err(|_| FastCryptoError::InvalidInput)?,
+    )
 }
 
 // Binary operations with 2 different types.
@@ -356,6 +366,13 @@ pub fn internal_validate(
             }
             native_charge_gas_early_exit_option!(context, cost_params.bn254_decode_gt_cost);
             parse_untrusted::<bn::BN254GTElement, { bn::BN254_GT_ELEMENT_BYTE_LENGTH }>(&bytes).is_ok()
+        }
+        Some(Groups::BN254UncompressedG1) => {
+            if !is_bn254_supported(context)? || !is_uncompressed_g1_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(context, cost_params.bn254_decode_g1_cost);
+            parse_bn254_g1_uncompressed(&bytes).is_ok()
         }
         _ => false,
     };
@@ -1217,6 +1234,27 @@ pub fn internal_convert(
             parse_trusted::<bls::G1Element, { bls::G1Element::BYTE_LENGTH }>(&e)
                 .map(|e| bls::G1ElementUncompressed::from(&e))
                 .map(|e| e.into_byte_array().to_vec())
+        }
+        (Some(Groups::BN254UncompressedG1), Some(Groups::BN254G1)) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(
+                context,
+                cost_params.bn254_uncompressed_g1_to_g1_cost
+            );
+            parse_bn254_g1_uncompressed(&e).map(|e| e.to_byte_array().to_vec())
+        }
+        (Some(Groups::BN254G1), Some(Groups::BN254UncompressedG1)) => {
+            if !is_bn254_supported(context)? {
+                return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
+            }
+            native_charge_gas_early_exit_option!(
+                context,
+                cost_params.bn254_g1_to_uncompressed_g1_cost
+            );
+            parse_trusted::<bn::BN254G1Element, { bn::BN254_G1_ELEMENT_BYTE_LENGTH }>(&e)
+                .map(|e| e.to_uncompressed_byte_array().to_vec())
         }
         _ => Err(FastCryptoError::InvalidInput),
     };

@@ -13,11 +13,12 @@ public struct Scalar {}
 public struct G1 {}
 public struct G2 {}
 public struct GT {}
+public struct UncompressedG1 {}
 
 // Scalars are encoded using little-endian byte order and are always 32 bytes,
-// matching fastcrypto's BN254 group API. G1, G2, and GT encodings are defined
-// by the corresponding native `group_ops` implementation for these BN254 type
-// identifiers.
+// matching fastcrypto's BN254 group API. G1 and G2 default encodings are
+// compressed. UncompressedG1 elements use BN254 G1 uncompressed serialization
+// and can be converted to/from G1 elements.
 
 // Const scalar elements.
 const SCALAR_ZERO_BYTES: vector<u8> =
@@ -43,6 +44,7 @@ const SCALAR_TYPE: u8 = 7;
 const G1_TYPE: u8 = 8;
 const G2_TYPE: u8 = 9;
 const GT_TYPE: u8 = 10;
+const UNCOMPRESSED_G1_TYPE: u8 = 11;
 
 ///////////////////////////////
 ////// Scalar operations //////
@@ -136,6 +138,11 @@ public fun g1_multi_scalar_multiplication(
     group_ops::multi_scalar_multiplication(G1_TYPE, scalars, elements)
 }
 
+/// Convert an `Element<G1>` to uncompressed form.
+public fun g1_to_uncompressed_g1(e: &Element<G1>): Element<UncompressedG1> {
+    group_ops::convert(G1_TYPE, UNCOMPRESSED_G1_TYPE, e)
+}
+
 /////////////////////////////////
 ////// G2 group operations //////
 
@@ -222,4 +229,16 @@ public fun gt_div(e1: &Element<Scalar>, e2: &Element<GT>): Element<GT> {
 
 public fun pairing(e1: &Element<G1>, e2: &Element<G2>): Element<GT> {
     group_ops::pairing(G1_TYPE, e1, e2)
+}
+
+///////////////////////////////////////
+/// UncompressedG1 group operations ///
+
+public fun uncompressed_g1_from_bytes(bytes: &vector<u8>): Element<UncompressedG1> {
+    group_ops::from_bytes(UNCOMPRESSED_G1_TYPE, *bytes, false)
+}
+
+/// Create an `Element<G1>` from its uncompressed form.
+public fun uncompressed_g1_to_g1(e: &Element<UncompressedG1>): Element<G1> {
+    group_ops::convert(UNCOMPRESSED_G1_TYPE, G1_TYPE, e)
 }

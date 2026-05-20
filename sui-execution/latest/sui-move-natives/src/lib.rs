@@ -844,6 +844,12 @@ impl NativesCostTable {
                 bn254_pairing_cost: protocol_config
                     .group_ops_bn254_pairing_cost_as_option()
                     .map(Into::into),
+                bn254_g1_to_uncompressed_g1_cost: protocol_config
+                    .group_ops_bls12381_g1_to_uncompressed_g1_cost_as_option()
+                    .map(Into::into),
+                bn254_uncompressed_g1_to_g1_cost: protocol_config
+                    .group_ops_bls12381_uncompressed_g1_to_g1_cost_as_option()
+                    .map(Into::into),
             },
             vdf_cost_params: VDFCostParams {
                 vdf_verify_cost: protocol_config
