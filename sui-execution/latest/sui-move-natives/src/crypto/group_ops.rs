@@ -942,7 +942,7 @@ fn multi_scalar_mul<G, const SCALAR_SIZE: usize, const POINT_SIZE: usize>(
     point_decode_cost: Option<InternalGas>,
     base_cost: Option<InternalGas>,
     base_cost_per_addition: Option<InternalGas>,
-    max_len: u32,
+    max_len: Option<u32>,
     scalars: &[u8],
     points: &[u8],
 ) -> PartialVMResult<NativeResult>
@@ -962,8 +962,10 @@ where
         return Ok(NativeResult::err(context.gas_used(), INVALID_INPUT_ERROR));
     }
 
-    if points.len() / POINT_SIZE > max_len as usize {
-        return Ok(NativeResult::err(context.gas_used(), INPUT_TOO_LONG_ERROR));
+    if let Some(max_len) = max_len {
+        if points.len() / POINT_SIZE > max_len as usize {
+            return Ok(NativeResult::err(context.gas_used(), INPUT_TOO_LONG_ERROR));
+        }
     }
 
     native_charge_gas_early_exit_option!(
@@ -1049,7 +1051,7 @@ pub fn internal_multi_scalar_mul(
                 cost_params.bls12381_decode_g1_cost,
                 cost_params.bls12381_g1_msm_base_cost,
                 cost_params.bls12381_g1_msm_base_cost_per_input,
-                max_len,
+                Some(max_len),
                 scalars.as_ref(),
                 elements.as_ref(),
             )
@@ -1069,7 +1071,7 @@ pub fn internal_multi_scalar_mul(
                 cost_params.bls12381_decode_g2_cost,
                 cost_params.bls12381_g2_msm_base_cost,
                 cost_params.bls12381_g2_msm_base_cost_per_input,
-                max_len,
+                Some(max_len),
                 scalars.as_ref(),
                 elements.as_ref(),
             )
@@ -1078,10 +1080,6 @@ pub fn internal_multi_scalar_mul(
             if !is_bn254_supported(context)? {
                 return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
             }
-            let max_len = cost_params.bn254_msm_max_len.ok_or_else(|| {
-                PartialVMError::new(StatusCode::UNKNOWN_INVARIANT_VIOLATION_ERROR)
-                    .with_message("Max len for MSM is not set".to_string())
-            })?;
             multi_scalar_mul::<
                 bn::BN254G1Element,
                 { bn::BN254_SCALAR_LENGTH },
@@ -1092,7 +1090,7 @@ pub fn internal_multi_scalar_mul(
                 cost_params.bn254_decode_g1_cost,
                 cost_params.bn254_g1_msm_base_cost,
                 cost_params.bn254_g1_msm_base_cost_per_input,
-                max_len,
+                None,
                 scalars.as_ref(),
                 elements.as_ref(),
             )
@@ -1101,10 +1099,6 @@ pub fn internal_multi_scalar_mul(
             if !is_bn254_supported(context)? {
                 return Ok(NativeResult::err(cost, NOT_SUPPORTED_ERROR));
             }
-            let max_len = cost_params.bn254_msm_max_len.ok_or_else(|| {
-                PartialVMError::new(StatusCode::UNKNOWN_INVARIANT_VIOLATION_ERROR)
-                    .with_message("Max len for MSM is not set".to_string())
-            })?;
             multi_scalar_mul::<
                 bn::BN254G2Element,
                 { bn::BN254_SCALAR_LENGTH },
@@ -1115,7 +1109,7 @@ pub fn internal_multi_scalar_mul(
                 cost_params.bn254_decode_g2_cost,
                 cost_params.bn254_g2_msm_base_cost,
                 cost_params.bn254_g2_msm_base_cost_per_input,
-                max_len,
+                None,
                 scalars.as_ref(),
                 elements.as_ref(),
             )

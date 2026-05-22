@@ -465,8 +465,8 @@ fun test_diff_length_g1_msm() {
     );
 }
 
-#[test, expected_failure(abort_code = group_ops::EInputTooLong)]
-fun test_msm_g1_too_long() {
+#[test]
+fun test_msm_g1_more_than_protocol_max_len() {
     let mut i = 0;
     let mut scalars: vector<group_ops::Element<bn254::Scalar>> = vector[];
     let mut elements: vector<group_ops::Element<bn254::G1>> = vector[];
@@ -475,7 +475,9 @@ fun test_msm_g1_too_long() {
         elements.push_back(bn254::g1_generator());
         i = i + 1;
     };
-    let _ = bn254::g1_multi_scalar_multiplication(&scalars, &elements);
+    let result = bn254::g1_multi_scalar_multiplication(&scalars, &elements);
+    let expected = bn254::g1_mul(&bn254::scalar_from_u64(561), &bn254::g1_generator());
+    assert!(group_ops::equal(&result, &expected));
 }
 
 #[test]
@@ -520,8 +522,8 @@ fun test_diff_length_g2_msm() {
     );
 }
 
-#[test, expected_failure(abort_code = group_ops::EInputTooLong)]
-fun test_msm_g2_too_long() {
+#[test]
+fun test_msm_g2_more_than_protocol_max_len() {
     let mut i = 0;
     let mut scalars: vector<group_ops::Element<bn254::Scalar>> = vector[];
     let mut elements: vector<group_ops::Element<bn254::G2>> = vector[];
@@ -530,7 +532,9 @@ fun test_msm_g2_too_long() {
         elements.push_back(bn254::g2_generator());
         i = i + 1;
     };
-    let _ = bn254::g2_multi_scalar_multiplication(&scalars, &elements);
+    let result = bn254::g2_multi_scalar_multiplication(&scalars, &elements);
+    let expected = bn254::g2_mul(&bn254::scalar_from_u64(561), &bn254::g2_generator());
+    assert!(group_ops::equal(&result, &expected));
 }
 
 #[test]
