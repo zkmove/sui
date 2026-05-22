@@ -614,10 +614,10 @@ move-abstract-stack = { path = "external-crates/move/crates/move-abstract-stack"
 move-analyzer = { path = "external-crates/move/crates/move-analyzer" }
 move-trace-format = { path = "external-crates/move/crates/move-trace-format" }
 
-fastcrypto = { path = "../fastcrypto/fastcrypto" }
-fastcrypto-tbls = { path = "../fastcrypto/fastcrypto-tbls" }
-fastcrypto-zkp = { path = "../fastcrypto/fastcrypto-zkp", package = "fastcrypto-zkp" }
-fastcrypto-vdf = { path = "../fastcrypto/fastcrypto-vdf", features = [
+fastcrypto = { git = "https://github.com/zkmove/fastcrypto", rev = "781027b208ce94bcac2e02a56dab0492d63b2ae3" }
+fastcrypto-tbls = { git = "https://github.com/zkmove/fastcrypto", rev = "781027b208ce94bcac2e02a56dab0492d63b2ae3" }
+fastcrypto-zkp = { git = "https://github.com/zkmove/fastcrypto", rev = "781027b208ce94bcac2e02a56dab0492d63b2ae3", package = "fastcrypto-zkp" }
+fastcrypto-vdf = { git = "https://github.com/zkmove/fastcrypto", rev = "781027b208ce94bcac2e02a56dab0492d63b2ae3", features = [
   "experimental",
 ] }
 passkey-types = { version = "0.4.0" }
