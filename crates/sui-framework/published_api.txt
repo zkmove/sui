@@ -3082,7 +3082,34 @@ verify_groth16_proof
 verify_groth16_proof_internal
 	fun
 	0x2::groth16
+SerializedParams
+	public struct
+	0x2::halo2_kzg
+SerializedVK
+	public struct
+	0x2::halo2_kzg
+SerializedCircuit
+	public struct
+	0x2::halo2_kzg
+PublicInputs
+	public struct
+	0x2::halo2_kzg
+ArtifactBuilder
+	public struct
+	0x2::halo2_kzg
+BuilderCreated
+	public struct
+	0x2::halo2_kzg
+ChunkAppended
+	public struct
+	0x2::halo2_kzg
+ArtifactFinalized
+	public struct
+	0x2::halo2_kzg
 abi_version
+	public fun
+	0x2::halo2_kzg
+artifact_version
 	public fun
 	0x2::halo2_kzg
 kzg_gwc
@@ -3091,8 +3118,206 @@ kzg_gwc
 kzg_shplonk
 	public fun
 	0x2::halo2_kzg
+native_abi_version
+	public fun
+	0x2::halo2_kzg
+max_params_bytes
+	public fun
+	0x2::halo2_kzg
+max_vk_bytes
+	public fun
+	0x2::halo2_kzg
+max_circuit_info_bytes
+	public fun
+	0x2::halo2_kzg
+max_proof_bytes
+	public fun
+	0x2::halo2_kzg
+max_public_inputs_bytes
+	public fun
+	0x2::halo2_kzg
+max_chunk_bytes
+	public fun
+	0x2::halo2_kzg
+kind_params
+	public fun
+	0x2::halo2_kzg
+kind_vk
+	public fun
+	0x2::halo2_kzg
+kind_circuit_info
+	public fun
+	0x2::halo2_kzg
+public_inputs_from_bytes
+	public fun
+	0x2::halo2_kzg
+public_inputs_to_bytes
+	public fun
+	0x2::halo2_kzg
+public_inputs_to_bcs_bytes
+	public fun
+	0x2::halo2_kzg
+new_serialized_params
+	public fun
+	0x2::halo2_kzg
+publish_serialized_params
+	entry fun
+	0x2::halo2_kzg
+serialized_params_version
+	public fun
+	0x2::halo2_kzg
+assert_supported_params_version
+	public fun
+	0x2::halo2_kzg
+get_serialized_params
+	public fun
+	0x2::halo2_kzg
+get_serialized_params_digest
+	public fun
+	0x2::halo2_kzg
+destroy_serialized_params
+	public fun
+	0x2::halo2_kzg
+new_serialized_vk
+	public fun
+	0x2::halo2_kzg
+publish_serialized_vk
+	entry fun
+	0x2::halo2_kzg
+serialized_vk_version
+	public fun
+	0x2::halo2_kzg
+get_serialized_vk
+	public fun
+	0x2::halo2_kzg
+get_serialized_vk_digest
+	public fun
+	0x2::halo2_kzg
+destroy_serialized_vk
+	public fun
+	0x2::halo2_kzg
+new_serialized_circuit
+	public fun
+	0x2::halo2_kzg
+publish_serialized_circuit
+	entry fun
+	0x2::halo2_kzg
+serialized_circuit_version
+	public fun
+	0x2::halo2_kzg
+get_serialized_circuit
+	public fun
+	0x2::halo2_kzg
+get_serialized_circuit_digest
+	public fun
+	0x2::halo2_kzg
+destroy_serialized_circuit
+	public fun
+	0x2::halo2_kzg
+new_params_builder
+	public fun
+	0x2::halo2_kzg
+new_vk_builder
+	public fun
+	0x2::halo2_kzg
+new_circuit_info_builder
+	public fun
+	0x2::halo2_kzg
+publish_params_builder
+	entry fun
+	0x2::halo2_kzg
+publish_vk_builder
+	entry fun
+	0x2::halo2_kzg
+publish_circuit_info_builder
+	entry fun
+	0x2::halo2_kzg
+append_chunk
+	public fun
+	0x2::halo2_kzg
+finalize_params
+	public fun
+	0x2::halo2_kzg
+finalize_vk
+	public fun
+	0x2::halo2_kzg
+finalize_circuit_info
+	public fun
+	0x2::halo2_kzg
+finalize_params_to_sender
+	entry fun
+	0x2::halo2_kzg
+finalize_vk_to_sender
+	entry fun
+	0x2::halo2_kzg
+finalize_circuit_info_to_sender
+	entry fun
+	0x2::halo2_kzg
+finalize_params_and_freeze
+	entry fun
+	0x2::halo2_kzg
+finalize_vk_and_freeze
+	entry fun
+	0x2::halo2_kzg
+finalize_circuit_info_and_freeze
+	entry fun
+	0x2::halo2_kzg
+builder_kind
+	public fun
+	0x2::halo2_kzg
+builder_len
+	public fun
+	0x2::halo2_kzg
+destroy_builder
+	public fun
+	0x2::halo2_kzg
 verify_proof
 	public fun
+	0x2::halo2_kzg
+verify_proof_bytes
+	public fun
+	0x2::halo2_kzg
+verify_artifact_proof
+	public fun
+	0x2::halo2_kzg
+verify_with_artifacts
+	entry fun
+	0x2::halo2_kzg
+assert_supported_vk_version
+	fun
+	0x2::halo2_kzg
+assert_supported_circuit_version
+	fun
+	0x2::halo2_kzg
+assert_params_size
+	fun
+	0x2::halo2_kzg
+assert_vk_size
+	fun
+	0x2::halo2_kzg
+assert_circuit_info_size
+	fun
+	0x2::halo2_kzg
+assert_proof_size
+	fun
+	0x2::halo2_kzg
+assert_public_inputs_size
+	fun
+	0x2::halo2_kzg
+assert_chunk_size
+	fun
+	0x2::halo2_kzg
+assert_total_size
+	fun
+	0x2::halo2_kzg
+new_builder
+	fun
+	0x2::halo2_kzg
+finish
+	fun
+	0x2::halo2_kzg
+emit_finalized
+	fun
 	0x2::halo2_kzg
 verify_proof_internal
 	fun
