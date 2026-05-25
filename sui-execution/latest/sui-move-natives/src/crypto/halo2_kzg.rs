@@ -14,11 +14,11 @@ use move_vm_runtime::{
 use smallvec::smallvec;
 use std::{collections::VecDeque, fmt::Display, panic::AssertUnwindSafe};
 
-pub const E_INPUT_TOO_LARGE: u64 = 0;
-pub const E_INVALID_NATIVE_ARGUMENT: u64 = 1;
-pub const E_NOT_SUPPORTED: u64 = 2;
-pub const E_VERIFIER_INPUT_ERROR: u64 = 3;
-pub const E_VERIFIER_PANICKED: u64 = 4;
+pub const E_INPUT_TOO_LARGE: u64 = 1000;
+pub const E_INVALID_NATIVE_ARGUMENT: u64 = 1001;
+pub const E_NOT_SUPPORTED: u64 = 1002;
+pub const E_VERIFIER_INPUT_ERROR: u64 = 1003;
+pub const E_VERIFIER_PANICKED: u64 = 1004;
 
 pub const KZG_GWC: u8 = 0;
 pub const KZG_SHPLONK: u8 = 1;
@@ -245,6 +245,51 @@ mod tests {
             kzg_variant: KZG_GWC,
             k: None,
         }
+    }
+
+    #[test]
+    fn native_abort_codes_do_not_overlap_move_errors() {
+        for code in [
+            E_INPUT_TOO_LARGE,
+            E_INVALID_NATIVE_ARGUMENT,
+            E_NOT_SUPPORTED,
+            E_VERIFIER_INPUT_ERROR,
+            E_VERIFIER_PANICKED,
+        ] {
+            assert!(code >= 1000);
+        }
+    }
+
+    #[test]
+    fn move_and_native_byte_limits_match() {
+        const MOVE_SOURCE: &str = include_str!(
+            "../../../../../crates/sui-framework/packages/sui-framework/sources/crypto/halo2_kzg.move"
+        );
+
+        assert_eq!(
+            parse_move_u64_const(MOVE_SOURCE, "MAX_PARAMS_BYTES"),
+            MAX_PARAMS_BYTES as u64
+        );
+        assert_eq!(
+            parse_move_u64_const(MOVE_SOURCE, "MAX_VK_BYTES"),
+            MAX_VK_BYTES as u64
+        );
+        assert_eq!(
+            parse_move_u64_const(MOVE_SOURCE, "MAX_CIRCUIT_INFO_BYTES"),
+            MAX_CIRCUIT_INFO_BYTES as u64
+        );
+        assert_eq!(
+            parse_move_u64_const(MOVE_SOURCE, "MAX_PROOF_BYTES"),
+            MAX_PROOF_BYTES as u64
+        );
+        assert_eq!(
+            parse_move_u64_const(MOVE_SOURCE, "MAX_PUBLIC_INPUTS_BYTES"),
+            MAX_PUBLIC_INPUT_BYTES as u64
+        );
+        assert_eq!(
+            parse_move_u64_const(MOVE_SOURCE, "HALO2_PUBLIC_INPUT_SCALAR_BYTES"),
+            HALO2_PUBLIC_INPUT_SCALAR_BYTES as u64
+        );
     }
 
     fn hex_to_bytes(hex: &str) -> Vec<u8> {
@@ -490,7 +535,7 @@ mod tests {
         let current_exe = env::current_exe().expect("current test binary path");
         let mut baseline = None;
 
-        for threads in ["1", "2", "4"] {
+        for threads in ["1", "2", "4", "8", "16", "32", "64"] {
             let output = Command::new(&current_exe)
                 .arg("--nocapture")
                 .arg("rayon_thread_count_determinism_child")
@@ -618,5 +663,23 @@ mod tests {
             VerifyOutcome::Invalid => "invalid".to_string(),
             VerifyOutcome::Abort(code) => format!("abort:{code}"),
         }
+    }
+
+    fn parse_move_u64_const(source: &str, name: &str) -> u64 {
+        let prefix = format!("const {name}: u64 = ");
+        let expression = source
+            .lines()
+            .find_map(|line| line.trim().strip_prefix(&prefix))
+            .and_then(|line| line.strip_suffix(';'))
+            .unwrap_or_else(|| panic!("missing Move const {name}"));
+
+        expression
+            .split('*')
+            .map(|part| {
+                part.trim()
+                    .parse::<u64>()
+                    .unwrap_or_else(|_| panic!("invalid Move const {name}: {expression}"))
+            })
+            .product()
     }
 }

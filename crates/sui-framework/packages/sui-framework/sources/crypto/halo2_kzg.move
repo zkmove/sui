@@ -29,6 +29,12 @@ const ABI_VERSION: u64 = 1;
 /// Version of the object-backed artifact format exposed by this module.
 const ARTIFACT_VERSION: u16 = 1;
 
+/// Oldest object-backed artifact format version still accepted by this module.
+const MIN_SUPPORTED_ARTIFACT_VERSION: u16 = 1;
+
+/// Version of the event schemas emitted by this module.
+const EVENT_VERSION: u16 = 1;
+
 const MAX_PARAMS_BYTES: u64 = 240 * 1024;
 const MAX_VK_BYTES: u64 = 240 * 1024;
 const MAX_CIRCUIT_INFO_BYTES: u64 = 240 * 1024;
@@ -37,6 +43,7 @@ const MAX_PUBLIC_INPUTS_BYTES: u64 = 16 * 1024;
 // Keep each pure vector<u8> below Sui's 16 KiB max_pure_argument_size,
 // leaving BCS length-prefix headroom.
 const MAX_CHUNK_BYTES: u64 = 15 * 1024;
+const HALO2_PUBLIC_INPUT_SCALAR_BYTES: u64 = 32;
 
 const KIND_PARAMS: u8 = 0;
 const KIND_VK: u8 = 1;
@@ -68,6 +75,9 @@ const EDigestMismatch: u64 = 8;
 
 /// Empty chunk builders cannot be finalized into verifier artifacts.
 const EEmptyArtifact: u64 = 9;
+
+/// Every serialized public input scalar must be exactly 32 bytes.
+const EInvalidPublicInputScalarLength: u64 = 10;
 
 public struct SerializedParams has key, store {
     id: UID,
@@ -102,6 +112,7 @@ public struct ArtifactBuilder has key, store {
 }
 
 public struct BuilderCreated has copy, drop {
+    version: u16,
     builder_id: ID,
     kind: u8,
     max_bytes: u64,
@@ -109,6 +120,7 @@ public struct BuilderCreated has copy, drop {
 }
 
 public struct ChunkAppended has copy, drop {
+    version: u16,
     builder_id: ID,
     kind: u8,
     chunk_len: u64,
@@ -116,6 +128,7 @@ public struct ChunkAppended has copy, drop {
 }
 
 public struct ArtifactFinalized has copy, drop {
+    version: u16,
     builder_id: ID,
     artifact_id: ID,
     kind: u8,
@@ -130,13 +143,14 @@ public fun abi_version(): u64 { ABI_VERSION }
 /// Returns the object-backed artifact format version.
 public fun artifact_version(): u16 { ARTIFACT_VERSION }
 
+/// Returns the version of event schemas emitted by this module.
+public fun event_version(): u16 { EVENT_VERSION }
+
 /// Returns the KZG variant identifier for GWC proofs.
 public fun kzg_gwc(): u8 { KZG_GWC }
 
 /// Returns the KZG variant identifier for Shplonk proofs.
 public fun kzg_shplonk(): u8 { KZG_SHPLONK }
-
-public fun native_abi_version(): u64 { ABI_VERSION }
 
 public fun max_params_bytes(): u64 { MAX_PARAMS_BYTES }
 
@@ -157,6 +171,8 @@ public fun kind_vk(): u8 { KIND_VK }
 public fun kind_circuit_info(): u8 { KIND_CIRCUIT_INFO }
 
 public fun public_inputs_from_bytes(bytes: vector<vector<vector<u8>>>): PublicInputs {
+    assert_public_inputs_shape(&bytes);
+    assert_public_inputs_size(&bcs::to_bytes(&bytes));
     PublicInputs { columns: bytes }
 }
 
@@ -196,8 +212,13 @@ public fun serialized_params_version(params: &SerializedParams): u16 {
     params.version
 }
 
-public fun assert_supported_params_version(params: &SerializedParams) {
-    assert!(params.version == ARTIFACT_VERSION, EUnsupportedVersion)
+fun assert_supported_params_version(params: &SerializedParams) {
+    assert_supported_artifact_version(params.version)
+}
+
+#[test_only]
+public fun set_serialized_params_version_for_test(params: &mut SerializedParams, version: u16) {
+    params.version = version
 }
 
 public fun get_serialized_params(params: &SerializedParams): vector<u8> {
@@ -238,6 +259,11 @@ public fun serialized_vk_version(vk: &SerializedVK): u16 {
     vk.version
 }
 
+#[test_only]
+public fun set_serialized_vk_version_for_test(vk: &mut SerializedVK, version: u16) {
+    vk.version = version
+}
+
 public fun get_serialized_vk(vk: &SerializedVK): vector<u8> {
     vk.vk_bytes
 }
@@ -274,6 +300,11 @@ entry fun publish_serialized_circuit(
 
 public fun serialized_circuit_version(circuit: &SerializedCircuit): u16 {
     circuit.version
+}
+
+#[test_only]
+public fun set_serialized_circuit_version_for_test(circuit: &mut SerializedCircuit, version: u16) {
+    circuit.version = version
 }
 
 public fun get_serialized_circuit(circuit: &SerializedCircuit): vector<u8> {
@@ -319,6 +350,7 @@ public fun append_chunk(builder: &mut ArtifactBuilder, chunk: vector<u8>) {
     assert_total_size(builder.bytes.length() + chunk.length(), builder.max_bytes);
     builder.bytes.append(chunk);
     event::emit(ChunkAppended {
+        version: EVENT_VERSION,
         builder_id: object::uid_to_inner(&builder.id),
         kind: builder.kind,
         chunk_len,
@@ -503,34 +535,6 @@ public fun verify_proof(
     )
 }
 
-public fun verify_proof_bytes(
-    params: vector<u8>,
-    params_digest: vector<u8>,
-    vk: vector<u8>,
-    vk_digest: vector<u8>,
-    circuit_info: vector<u8>,
-    circuit_info_digest: vector<u8>,
-    public_inputs: vector<u8>,
-    proof: vector<u8>,
-    kzg_variant: u8,
-    k_present: bool,
-    k: u32,
-): bool {
-    verify_proof(
-        params,
-        params_digest,
-        vk,
-        vk_digest,
-        circuit_info,
-        circuit_info_digest,
-        public_inputs,
-        proof,
-        kzg_variant,
-        k_present,
-        k,
-    )
-}
-
 public fun verify_artifact_proof(
     params: &SerializedParams,
     vk: &SerializedVK,
@@ -591,11 +595,18 @@ entry fun verify_with_artifacts(
 }
 
 fun assert_supported_vk_version(vk: &SerializedVK) {
-    assert!(vk.version == ARTIFACT_VERSION, EUnsupportedVersion)
+    assert_supported_artifact_version(vk.version)
 }
 
 fun assert_supported_circuit_version(circuit: &SerializedCircuit) {
-    assert!(circuit.version == ARTIFACT_VERSION, EUnsupportedVersion)
+    assert_supported_artifact_version(circuit.version)
+}
+
+fun assert_supported_artifact_version(version: u16) {
+    assert!(
+        MIN_SUPPORTED_ARTIFACT_VERSION <= version && version <= ARTIFACT_VERSION,
+        EUnsupportedVersion,
+    )
 }
 
 fun assert_params_size(bytes: &vector<u8>) {
@@ -618,6 +629,22 @@ fun assert_public_inputs_size(bytes: &vector<u8>) {
     assert!(bytes.length() <= MAX_PUBLIC_INPUTS_BYTES, EInputTooLarge)
 }
 
+fun assert_public_inputs_shape(columns: &vector<vector<vector<u8>>>) {
+    let mut i = 0;
+    while (i < columns.length()) {
+        let column = &columns[i];
+        let mut j = 0;
+        while (j < column.length()) {
+            assert!(
+                column[j].length() == HALO2_PUBLIC_INPUT_SCALAR_BYTES,
+                EInvalidPublicInputScalarLength,
+            );
+            j = j + 1;
+        };
+        i = i + 1;
+    }
+}
+
 fun assert_chunk_size(bytes: &vector<u8>) {
     assert!(bytes.length() <= MAX_CHUNK_BYTES, EChunkTooLarge)
 }
@@ -634,6 +661,7 @@ fun new_builder(kind: u8, max_bytes: u64, ctx: &mut TxContext): ArtifactBuilder 
         max_bytes,
     };
     event::emit(BuilderCreated {
+        version: EVENT_VERSION,
         builder_id: object::id(&builder),
         kind,
         max_bytes,
@@ -665,6 +693,7 @@ fun emit_finalized(
     ctx: &TxContext,
 ) {
     event::emit(ArtifactFinalized {
+        version: EVENT_VERSION,
         builder_id,
         artifact_id,
         kind,

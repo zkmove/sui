@@ -3112,13 +3112,13 @@ abi_version
 artifact_version
 	public fun
 	0x2::halo2_kzg
+event_version
+	public fun
+	0x2::halo2_kzg
 kzg_gwc
 	public fun
 	0x2::halo2_kzg
 kzg_shplonk
-	public fun
-	0x2::halo2_kzg
-native_abi_version
 	public fun
 	0x2::halo2_kzg
 max_params_bytes
@@ -3167,7 +3167,7 @@ serialized_params_version
 	public fun
 	0x2::halo2_kzg
 assert_supported_params_version
-	public fun
+	fun
 	0x2::halo2_kzg
 get_serialized_params
 	public fun
@@ -3274,9 +3274,6 @@ destroy_builder
 verify_proof
 	public fun
 	0x2::halo2_kzg
-verify_proof_bytes
-	public fun
-	0x2::halo2_kzg
 verify_artifact_proof
 	public fun
 	0x2::halo2_kzg
@@ -3287,6 +3284,9 @@ assert_supported_vk_version
 	fun
 	0x2::halo2_kzg
 assert_supported_circuit_version
+	fun
+	0x2::halo2_kzg
+assert_supported_artifact_version
 	fun
 	0x2::halo2_kzg
 assert_params_size
@@ -3302,6 +3302,9 @@ assert_proof_size
 	fun
 	0x2::halo2_kzg
 assert_public_inputs_size
+	fun
+	0x2::halo2_kzg
+assert_public_inputs_shape
 	fun
 	0x2::halo2_kzg
 assert_chunk_size

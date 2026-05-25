@@ -5582,6 +5582,20 @@ mod test {
     }
 
     #[test]
+    fn halo2_kzg_feature_gate_is_disabled_on_public_chains() {
+        let version = ProtocolVersion::new(123);
+        assert!(
+            ProtocolConfig::get_for_version(version, Chain::Unknown).enable_halo2_kzg_verifier()
+        );
+        assert!(
+            !ProtocolConfig::get_for_version(version, Chain::Mainnet).enable_halo2_kzg_verifier()
+        );
+        assert!(
+            !ProtocolConfig::get_for_version(version, Chain::Testnet).enable_halo2_kzg_verifier()
+        );
+    }
+
+    #[test]
     fn test_setters() {
         let mut prot: ProtocolConfig =
             ProtocolConfig::get_for_version(ProtocolVersion::new(1), Chain::Unknown);

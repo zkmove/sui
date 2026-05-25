@@ -2,8 +2,6 @@
 title: Module `sui::halo2_kzg`
 ---
 
-<a name="sui_halo2_kzg"></a>
-
 Verifies Halo2 proofs over BN254 with KZG commitments.
 
 The verifier accepts serialized KZG parameters, a serialized Halo2 verifying key, serialized
@@ -27,9 +25,9 @@ inputs, unsupported protocol configuration, or native verifier failures may abor
 -  [Constants](#@Constants_0)
 -  [Function `abi_version`](#sui_halo2_kzg_abi_version)
 -  [Function `artifact_version`](#sui_halo2_kzg_artifact_version)
+-  [Function `event_version`](#sui_halo2_kzg_event_version)
 -  [Function `kzg_gwc`](#sui_halo2_kzg_kzg_gwc)
 -  [Function `kzg_shplonk`](#sui_halo2_kzg_kzg_shplonk)
--  [Function `native_abi_version`](#sui_halo2_kzg_native_abi_version)
 -  [Function `max_params_bytes`](#sui_halo2_kzg_max_params_bytes)
 -  [Function `max_vk_bytes`](#sui_halo2_kzg_max_vk_bytes)
 -  [Function `max_circuit_info_bytes`](#sui_halo2_kzg_max_circuit_info_bytes)
@@ -81,16 +79,17 @@ inputs, unsupported protocol configuration, or native verifier failures may abor
 -  [Function `builder_len`](#sui_halo2_kzg_builder_len)
 -  [Function `destroy_builder`](#sui_halo2_kzg_destroy_builder)
 -  [Function `verify_proof`](#sui_halo2_kzg_verify_proof)
--  [Function `verify_proof_bytes`](#sui_halo2_kzg_verify_proof_bytes)
 -  [Function `verify_artifact_proof`](#sui_halo2_kzg_verify_artifact_proof)
 -  [Function `verify_with_artifacts`](#sui_halo2_kzg_verify_with_artifacts)
 -  [Function `assert_supported_vk_version`](#sui_halo2_kzg_assert_supported_vk_version)
 -  [Function `assert_supported_circuit_version`](#sui_halo2_kzg_assert_supported_circuit_version)
+-  [Function `assert_supported_artifact_version`](#sui_halo2_kzg_assert_supported_artifact_version)
 -  [Function `assert_params_size`](#sui_halo2_kzg_assert_params_size)
 -  [Function `assert_vk_size`](#sui_halo2_kzg_assert_vk_size)
 -  [Function `assert_circuit_info_size`](#sui_halo2_kzg_assert_circuit_info_size)
 -  [Function `assert_proof_size`](#sui_halo2_kzg_assert_proof_size)
 -  [Function `assert_public_inputs_size`](#sui_halo2_kzg_assert_public_inputs_size)
+-  [Function `assert_public_inputs_shape`](#sui_halo2_kzg_assert_public_inputs_shape)
 -  [Function `assert_chunk_size`](#sui_halo2_kzg_assert_chunk_size)
 -  [Function `assert_total_size`](#sui_halo2_kzg_assert_total_size)
 -  [Function `new_builder`](#sui_halo2_kzg_new_builder)
@@ -330,6 +329,11 @@ inputs, unsupported protocol configuration, or native verifier failures may abor
 
 <dl>
 <dt>
+<code>version: u16</code>
+</dt>
+<dd>
+</dd>
+<dt>
 <code>builder_id: <a href="../sui/object.md#sui_object_ID">sui::object::ID</a></code>
 </dt>
 <dd>
@@ -371,6 +375,11 @@ inputs, unsupported protocol configuration, or native verifier failures may abor
 
 <dl>
 <dt>
+<code>version: u16</code>
+</dt>
+<dd>
+</dd>
+<dt>
 <code>builder_id: <a href="../sui/object.md#sui_object_ID">sui::object::ID</a></code>
 </dt>
 <dd>
@@ -411,6 +420,11 @@ inputs, unsupported protocol configuration, or native verifier failures may abor
 
 
 <dl>
+<dt>
+<code>version: u16</code>
+</dt>
+<dd>
+</dd>
 <dt>
 <code>builder_id: <a href="../sui/object.md#sui_object_ID">sui::object::ID</a></code>
 </dt>
@@ -491,6 +505,26 @@ Version of the object-backed artifact format exposed by this module.
 
 
 
+<a name="sui_halo2_kzg_MIN_SUPPORTED_ARTIFACT_VERSION"></a>
+
+Oldest object-backed artifact format version still accepted by this module.
+
+
+<pre><code><b>const</b> <a href="../sui/halo2_kzg.md#sui_halo2_kzg_MIN_SUPPORTED_ARTIFACT_VERSION">MIN_SUPPORTED_ARTIFACT_VERSION</a>: u16 = 1;
+</code></pre>
+
+
+
+<a name="sui_halo2_kzg_EVENT_VERSION"></a>
+
+Version of the event schemas emitted by this module.
+
+
+<pre><code><b>const</b> <a href="../sui/halo2_kzg.md#sui_halo2_kzg_EVENT_VERSION">EVENT_VERSION</a>: u16 = 1;
+</code></pre>
+
+
+
 <a name="sui_halo2_kzg_MAX_PARAMS_BYTES"></a>
 
 
@@ -541,6 +575,15 @@ Version of the object-backed artifact format exposed by this module.
 
 
 <pre><code><b>const</b> <a href="../sui/halo2_kzg.md#sui_halo2_kzg_MAX_CHUNK_BYTES">MAX_CHUNK_BYTES</a>: u64 = 15360;
+</code></pre>
+
+
+
+<a name="sui_halo2_kzg_HALO2_PUBLIC_INPUT_SCALAR_BYTES"></a>
+
+
+
+<pre><code><b>const</b> <a href="../sui/halo2_kzg.md#sui_halo2_kzg_HALO2_PUBLIC_INPUT_SCALAR_BYTES">HALO2_PUBLIC_INPUT_SCALAR_BYTES</a>: u64 = 32;
 </code></pre>
 
 
@@ -662,6 +705,16 @@ Empty chunk builders cannot be finalized into verifier artifacts.
 
 
 
+<a name="sui_halo2_kzg_EInvalidPublicInputScalarLength"></a>
+
+Every serialized public input scalar must be exactly 32 bytes.
+
+
+<pre><code><b>const</b> <a href="../sui/halo2_kzg.md#sui_halo2_kzg_EInvalidPublicInputScalarLength">EInvalidPublicInputScalarLength</a>: u64 = 10;
+</code></pre>
+
+
+
 <a name="sui_halo2_kzg_abi_version"></a>
 
 ## Function `abi_version`
@@ -708,6 +761,29 @@ Returns the object-backed artifact format version.
 
 </details>
 
+<a name="sui_halo2_kzg_event_version"></a>
+
+## Function `event_version`
+
+Returns the version of event schemas emitted by this module.
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="../sui/halo2_kzg.md#sui_halo2_kzg_event_version">event_version</a>(): u16
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="../sui/halo2_kzg.md#sui_halo2_kzg_event_version">event_version</a>(): u16 { <a href="../sui/halo2_kzg.md#sui_halo2_kzg_EVENT_VERSION">EVENT_VERSION</a> }
+</code></pre>
+
+
+
+</details>
+
 <a name="sui_halo2_kzg_kzg_gwc"></a>
 
 ## Function `kzg_gwc`
@@ -748,28 +824,6 @@ Returns the KZG variant identifier for Shplonk proofs.
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="../sui/halo2_kzg.md#sui_halo2_kzg_kzg_shplonk">kzg_shplonk</a>(): u8 { <a href="../sui/halo2_kzg.md#sui_halo2_kzg_KZG_SHPLONK">KZG_SHPLONK</a> }
-</code></pre>
-
-
-
-</details>
-
-<a name="sui_halo2_kzg_native_abi_version"></a>
-
-## Function `native_abi_version`
-
-
-
-<pre><code><b>public</b> <b>fun</b> <a href="../sui/halo2_kzg.md#sui_halo2_kzg_native_abi_version">native_abi_version</a>(): u64
-</code></pre>
-
-
-
-<details>
-<summary>Implementation</summary>
-
-
-<pre><code><b>public</b> <b>fun</b> <a href="../sui/halo2_kzg.md#sui_halo2_kzg_native_abi_version">native_abi_version</a>(): u64 { <a href="../sui/halo2_kzg.md#sui_halo2_kzg_ABI_VERSION">ABI_VERSION</a> }
 </code></pre>
 
 
@@ -990,6 +1044,8 @@ Returns the KZG variant identifier for Shplonk proofs.
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="../sui/halo2_kzg.md#sui_halo2_kzg_public_inputs_from_bytes">public_inputs_from_bytes</a>(bytes: vector&lt;vector&lt;vector&lt;u8&gt;&gt;&gt;): <a href="../sui/halo2_kzg.md#sui_halo2_kzg_PublicInputs">PublicInputs</a> {
+    <a href="../sui/halo2_kzg.md#sui_halo2_kzg_assert_public_inputs_shape">assert_public_inputs_shape</a>(&bytes);
+    <a href="../sui/halo2_kzg.md#sui_halo2_kzg_assert_public_inputs_size">assert_public_inputs_size</a>(&<a href="../sui/bcs.md#sui_bcs_to_bytes">bcs::to_bytes</a>(&bytes));
     <a href="../sui/halo2_kzg.md#sui_halo2_kzg_PublicInputs">PublicInputs</a> { columns: bytes }
 }
 </code></pre>
@@ -1140,7 +1196,7 @@ Returns the KZG variant identifier for Shplonk proofs.
 
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="../sui/halo2_kzg.md#sui_halo2_kzg_assert_supported_params_version">assert_supported_params_version</a>(params: &<a href="../sui/halo2_kzg.md#sui_halo2_kzg_SerializedParams">sui::halo2_kzg::SerializedParams</a>)
+<pre><code><b>fun</b> <a href="../sui/halo2_kzg.md#sui_halo2_kzg_assert_supported_params_version">assert_supported_params_version</a>(params: &<a href="../sui/halo2_kzg.md#sui_halo2_kzg_SerializedParams">sui::halo2_kzg::SerializedParams</a>)
 </code></pre>
 
 
@@ -1149,8 +1205,8 @@ Returns the KZG variant identifier for Shplonk proofs.
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="../sui/halo2_kzg.md#sui_halo2_kzg_assert_supported_params_version">assert_supported_params_version</a>(params: &<a href="../sui/halo2_kzg.md#sui_halo2_kzg_SerializedParams">SerializedParams</a>) {
-    <b>assert</b>!(params.version == <a href="../sui/halo2_kzg.md#sui_halo2_kzg_ARTIFACT_VERSION">ARTIFACT_VERSION</a>, <a href="../sui/halo2_kzg.md#sui_halo2_kzg_EUnsupportedVersion">EUnsupportedVersion</a>)
+<pre><code><b>fun</b> <a href="../sui/halo2_kzg.md#sui_halo2_kzg_assert_supported_params_version">assert_supported_params_version</a>(params: &<a href="../sui/halo2_kzg.md#sui_halo2_kzg_SerializedParams">SerializedParams</a>) {
+    <a href="../sui/halo2_kzg.md#sui_halo2_kzg_assert_supported_artifact_version">assert_supported_artifact_version</a>(params.version)
 }
 </code></pre>
 
@@ -1712,6 +1768,7 @@ Returns the KZG variant identifier for Shplonk proofs.
     <a href="../sui/halo2_kzg.md#sui_halo2_kzg_assert_total_size">assert_total_size</a>(builder.bytes.length() + chunk.length(), builder.max_bytes);
     builder.bytes.append(chunk);
     <a href="../sui/event.md#sui_event_emit">event::emit</a>(<a href="../sui/halo2_kzg.md#sui_halo2_kzg_ChunkAppended">ChunkAppended</a> {
+        version: <a href="../sui/halo2_kzg.md#sui_halo2_kzg_EVENT_VERSION">EVENT_VERSION</a>,
         builder_id: <a href="../sui/object.md#sui_object_uid_to_inner">object::uid_to_inner</a>(&builder.id),
         kind: builder.kind,
         chunk_len,
@@ -2159,54 +2216,6 @@ interpret the supplied bytes.
 
 </details>
 
-<a name="sui_halo2_kzg_verify_proof_bytes"></a>
-
-## Function `verify_proof_bytes`
-
-
-
-<pre><code><b>public</b> <b>fun</b> <a href="../sui/halo2_kzg.md#sui_halo2_kzg_verify_proof_bytes">verify_proof_bytes</a>(params: vector&lt;u8&gt;, params_digest: vector&lt;u8&gt;, vk: vector&lt;u8&gt;, vk_digest: vector&lt;u8&gt;, circuit_info: vector&lt;u8&gt;, circuit_info_digest: vector&lt;u8&gt;, public_inputs: vector&lt;u8&gt;, proof: vector&lt;u8&gt;, kzg_variant: u8, k_present: bool, k: u32): bool
-</code></pre>
-
-
-
-<details>
-<summary>Implementation</summary>
-
-
-<pre><code><b>public</b> <b>fun</b> <a href="../sui/halo2_kzg.md#sui_halo2_kzg_verify_proof_bytes">verify_proof_bytes</a>(
-    params: vector&lt;u8&gt;,
-    params_digest: vector&lt;u8&gt;,
-    vk: vector&lt;u8&gt;,
-    vk_digest: vector&lt;u8&gt;,
-    circuit_info: vector&lt;u8&gt;,
-    circuit_info_digest: vector&lt;u8&gt;,
-    public_inputs: vector&lt;u8&gt;,
-    proof: vector&lt;u8&gt;,
-    kzg_variant: u8,
-    k_present: bool,
-    k: u32,
-): bool {
-    <a href="../sui/halo2_kzg.md#sui_halo2_kzg_verify_proof">verify_proof</a>(
-        params,
-        params_digest,
-        vk,
-        vk_digest,
-        circuit_info,
-        circuit_info_digest,
-        public_inputs,
-        proof,
-        kzg_variant,
-        k_present,
-        k,
-    )
-}
-</code></pre>
-
-
-
-</details>
-
 <a name="sui_halo2_kzg_verify_artifact_proof"></a>
 
 ## Function `verify_artifact_proof`
@@ -2320,7 +2329,7 @@ interpret the supplied bytes.
 
 
 <pre><code><b>fun</b> <a href="../sui/halo2_kzg.md#sui_halo2_kzg_assert_supported_vk_version">assert_supported_vk_version</a>(vk: &<a href="../sui/halo2_kzg.md#sui_halo2_kzg_SerializedVK">SerializedVK</a>) {
-    <b>assert</b>!(vk.version == <a href="../sui/halo2_kzg.md#sui_halo2_kzg_ARTIFACT_VERSION">ARTIFACT_VERSION</a>, <a href="../sui/halo2_kzg.md#sui_halo2_kzg_EUnsupportedVersion">EUnsupportedVersion</a>)
+    <a href="../sui/halo2_kzg.md#sui_halo2_kzg_assert_supported_artifact_version">assert_supported_artifact_version</a>(vk.version)
 }
 </code></pre>
 
@@ -2344,7 +2353,34 @@ interpret the supplied bytes.
 
 
 <pre><code><b>fun</b> <a href="../sui/halo2_kzg.md#sui_halo2_kzg_assert_supported_circuit_version">assert_supported_circuit_version</a>(circuit: &<a href="../sui/halo2_kzg.md#sui_halo2_kzg_SerializedCircuit">SerializedCircuit</a>) {
-    <b>assert</b>!(circuit.version == <a href="../sui/halo2_kzg.md#sui_halo2_kzg_ARTIFACT_VERSION">ARTIFACT_VERSION</a>, <a href="../sui/halo2_kzg.md#sui_halo2_kzg_EUnsupportedVersion">EUnsupportedVersion</a>)
+    <a href="../sui/halo2_kzg.md#sui_halo2_kzg_assert_supported_artifact_version">assert_supported_artifact_version</a>(circuit.version)
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="sui_halo2_kzg_assert_supported_artifact_version"></a>
+
+## Function `assert_supported_artifact_version`
+
+
+
+<pre><code><b>fun</b> <a href="../sui/halo2_kzg.md#sui_halo2_kzg_assert_supported_artifact_version">assert_supported_artifact_version</a>(version: u16)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="../sui/halo2_kzg.md#sui_halo2_kzg_assert_supported_artifact_version">assert_supported_artifact_version</a>(version: u16) {
+    <b>assert</b>!(
+        <a href="../sui/halo2_kzg.md#sui_halo2_kzg_MIN_SUPPORTED_ARTIFACT_VERSION">MIN_SUPPORTED_ARTIFACT_VERSION</a> &lt;= version && version &lt;= <a href="../sui/halo2_kzg.md#sui_halo2_kzg_ARTIFACT_VERSION">ARTIFACT_VERSION</a>,
+        <a href="../sui/halo2_kzg.md#sui_halo2_kzg_EUnsupportedVersion">EUnsupportedVersion</a>,
+    )
 }
 </code></pre>
 
@@ -2472,6 +2508,42 @@ interpret the supplied bytes.
 
 </details>
 
+<a name="sui_halo2_kzg_assert_public_inputs_shape"></a>
+
+## Function `assert_public_inputs_shape`
+
+
+
+<pre><code><b>fun</b> <a href="../sui/halo2_kzg.md#sui_halo2_kzg_assert_public_inputs_shape">assert_public_inputs_shape</a>(columns: &vector&lt;vector&lt;vector&lt;u8&gt;&gt;&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="../sui/halo2_kzg.md#sui_halo2_kzg_assert_public_inputs_shape">assert_public_inputs_shape</a>(columns: &vector&lt;vector&lt;vector&lt;u8&gt;&gt;&gt;) {
+    <b>let</b> <b>mut</b> i = 0;
+    <b>while</b> (i &lt; columns.length()) {
+        <b>let</b> column = &columns[i];
+        <b>let</b> <b>mut</b> j = 0;
+        <b>while</b> (j &lt; column.length()) {
+            <b>assert</b>!(
+                column[j].length() == <a href="../sui/halo2_kzg.md#sui_halo2_kzg_HALO2_PUBLIC_INPUT_SCALAR_BYTES">HALO2_PUBLIC_INPUT_SCALAR_BYTES</a>,
+                <a href="../sui/halo2_kzg.md#sui_halo2_kzg_EInvalidPublicInputScalarLength">EInvalidPublicInputScalarLength</a>,
+            );
+            j = j + 1;
+        };
+        i = i + 1;
+    }
+}
+</code></pre>
+
+
+
+</details>
+
 <a name="sui_halo2_kzg_assert_chunk_size"></a>
 
 ## Function `assert_chunk_size`
@@ -2543,6 +2615,7 @@ interpret the supplied bytes.
         max_bytes,
     };
     <a href="../sui/event.md#sui_event_emit">event::emit</a>(<a href="../sui/halo2_kzg.md#sui_halo2_kzg_BuilderCreated">BuilderCreated</a> {
+        version: <a href="../sui/halo2_kzg.md#sui_halo2_kzg_EVENT_VERSION">EVENT_VERSION</a>,
         builder_id: <a href="../sui/object.md#sui_object_id">object::id</a>(&builder),
         kind,
         max_bytes,
@@ -2614,6 +2687,7 @@ interpret the supplied bytes.
     ctx: &TxContext,
 ) {
     <a href="../sui/event.md#sui_event_emit">event::emit</a>(<a href="../sui/halo2_kzg.md#sui_halo2_kzg_ArtifactFinalized">ArtifactFinalized</a> {
+        version: <a href="../sui/halo2_kzg.md#sui_halo2_kzg_EVENT_VERSION">EVENT_VERSION</a>,
         builder_id,
         artifact_id,
         kind,

@@ -33,6 +33,51 @@ fun test_verify_halo2_kzg_proof_through_object_api() {
     halo2_kzg::destroy_serialized_circuit(circuit);
 }
 
+#[test]
+fun test_verify_shplonk_proof_through_object_api() {
+    let ctx = &mut tx_context::dummy();
+    let params = halo2_kzg::new_serialized_params(params(), ctx);
+    let vk = halo2_kzg::new_serialized_vk(vk(), ctx);
+    let circuit = halo2_kzg::new_serialized_circuit(circuit_info(), ctx);
+
+    assert!(halo2_kzg::verify_artifact_proof(
+        &params,
+        &vk,
+        &circuit,
+        public_inputs(),
+        proof_shplonk(),
+        halo2_kzg::kzg_shplonk(),
+        false,
+        0,
+    ));
+
+    halo2_kzg::destroy_serialized_params(params);
+    halo2_kzg::destroy_serialized_vk(vk);
+    halo2_kzg::destroy_serialized_circuit(circuit);
+}
+
+#[test]
+fun test_verify_proof_with_k_present() {
+    let ctx = &mut tx_context::dummy();
+    let params = halo2_kzg::new_serialized_params(params(), ctx);
+    let vk = halo2_kzg::new_serialized_vk(vk(), ctx);
+    let circuit = halo2_kzg::new_serialized_circuit(circuit_info(), ctx);
+
+    assert!(halo2_kzg::verify_artifact_proof(
+        &params,
+        &vk,
+        &circuit,
+        public_inputs(),
+        proof(),
+        halo2_kzg::kzg_gwc(),
+        true,
+        4,
+    ));
+
+    halo2_kzg::destroy_serialized_params(params);
+    halo2_kzg::destroy_serialized_vk(vk);
+    halo2_kzg::destroy_serialized_circuit(circuit);
+}
 
 #[test]
 fun verify_vm_circuit_with_native_verifier() {
@@ -128,6 +173,7 @@ fun test_chunked_artifact_builders_verify_proof() {
     assert!(event::events_by_type<halo2_kzg::BuilderCreated>().length() == 3, 13);
     assert!(event::events_by_type<halo2_kzg::ChunkAppended>().length() == 6, 14);
     assert!(event::events_by_type<halo2_kzg::ArtifactFinalized>().length() == 3, 15);
+    assert!(halo2_kzg::event_version() == 1, 16);
 
     halo2_kzg::destroy_serialized_params(params);
     halo2_kzg::destroy_serialized_vk(vk);
@@ -135,22 +181,52 @@ fun test_chunked_artifact_builders_verify_proof() {
 }
 
 #[test]
-fun test_invalid_proof_returns_false_through_object_api() {
+fun test_malformed_proof_returns_false_through_object_api() {
     let ctx = &mut tx_context::dummy();
     let params = halo2_kzg::new_serialized_params(params(), ctx);
     let vk = halo2_kzg::new_serialized_vk(vk(), ctx);
     let circuit = halo2_kzg::new_serialized_circuit(circuit_info(), ctx);
+    let malformed_proof = malformed_proof();
 
     assert!(!halo2_kzg::verify_artifact_proof(
         &params,
         &vk,
         &circuit,
         public_inputs(),
-        x"00",
+        malformed_proof,
         halo2_kzg::kzg_gwc(),
         false,
         0,
     ));
+
+    halo2_kzg::destroy_serialized_params(params);
+    halo2_kzg::destroy_serialized_vk(vk);
+    halo2_kzg::destroy_serialized_circuit(circuit);
+}
+
+#[test]
+#[expected_failure(abort_code = halo2_kzg::EUnsupportedVersion)]
+fun test_future_artifact_version_aborts() {
+    let ctx = &mut tx_context::dummy();
+    let mut params = halo2_kzg::new_serialized_params(params(), ctx);
+    let vk = halo2_kzg::new_serialized_vk(vk(), ctx);
+    let circuit = halo2_kzg::new_serialized_circuit(circuit_info(), ctx);
+
+    halo2_kzg::set_serialized_params_version_for_test(
+        &mut params,
+        halo2_kzg::artifact_version() + 1,
+    );
+
+    halo2_kzg::verify_artifact_proof(
+        &params,
+        &vk,
+        &circuit,
+        public_inputs(),
+        proof(),
+        halo2_kzg::kzg_gwc(),
+        false,
+        0,
+    );
 
     halo2_kzg::destroy_serialized_params(params);
     halo2_kzg::destroy_serialized_vk(vk);
@@ -255,7 +331,7 @@ fun test_digest_mismatch_returns_false_through_bytes_helper() {
     let wrong_digest = x"0000000000000000000000000000000000000000000000000000000000000000";
     let empty_digest = hash::blake2b256(&empty);
 
-    assert!(!halo2_kzg::verify_proof_bytes(
+    assert!(!halo2_kzg::verify_proof(
         malformed,
         wrong_digest,
         copy empty,
@@ -277,7 +353,7 @@ fun test_oversize_public_inputs_abort_in_api() {
     let empty = x"";
     let empty_digest = hash::blake2b256(&empty);
 
-    halo2_kzg::verify_proof_bytes(
+    halo2_kzg::verify_proof(
         copy empty,
         copy empty_digest,
         copy empty,
@@ -290,6 +366,25 @@ fun test_oversize_public_inputs_abort_in_api() {
         false,
         0,
     );
+}
+
+#[test]
+#[expected_failure(abort_code = halo2_kzg::EInvalidPublicInputScalarLength)]
+fun test_public_inputs_reject_short_scalar() {
+    halo2_kzg::public_inputs_from_bytes(vector[vector[x"00"]]);
+}
+
+#[test]
+#[expected_failure(abort_code = halo2_kzg::EInputTooLarge)]
+fun test_public_inputs_reject_oversize_bcs() {
+    let scalar = public_input_scalar();
+    let mut column = vector[];
+    let mut i = 0;
+    while (i < 512) {
+        column.push_back(copy scalar);
+        i = i + 1u64;
+    };
+    halo2_kzg::public_inputs_from_bytes(vector[column]);
 }
 
 #[test]
@@ -383,6 +478,16 @@ fun public_input_scalar(): vector<u8> {
 
 fun proof(): vector<u8> {
     x"e9445cc7533f61fff8af036209735753b9276900d0b1812e91405ce65da07d20d8994f4c3db10d08f37a602e0f56258c624c6076d800678adfd0ecbad2fc3a2065db9386aa1d60c6c8ccffb869093fada5eb6797ba9488c8fa8b39f39d88ea0d8b987dbc98354df75153951b34d21fef0ec49e419453aa9eabb8397cf70c4e8945f3d19d0b85a80b1c92dd1f67742a65a1407676aae21846619e7683ba3681074fe0f929405e17fdb6b5457fa2796587349001fc43ee6726ef6473a62d772e270c4f6c0720fbd0cc9b142f6b7019cce18ffbb071348b7252d92c15ed49cb34af5fb50e30a6f2ae37b39bbc5e0f08f511623fc2e347f9dbc241b7676af8c2068f4e424a79cdf9e47d3f81213b7ce0754e22a5900bc034d9ec14eb976f2e4fe68f13a964e497d8550450f29c3d207d1319e41d325463add88986caa6226d3f5a071c1a237da662f8bc7044c930ba01e78ebab10c8f3750ce3875ade4c17613f629d469b3c80240d084f8eb7c00d349f1ec2eb923405d065c45e05972117810750c129a65213a381020350769823427aa691c79b77591373c8c9a19ee97717bda1bd2e5fe1e693cea645a56976dac736f1e4729ffc503392660cff16d21c64679144b8ad3b2f7ffd36e26837178cdd403266fe5ef05eee9eccf87032c2be6327007fad06835aceec94fcd5018e0d7001da60be35da0a23d43f702c6a8da7c40433047344f70808328501fce9f1920c3f54187c36e36c4d3d410fe76295a2f0afe07e040ec38b721e1fdb068c0eea9e5ec3b88579674b13a9471f7e8f2d6e82a5e00bf6c1f64443eaac6a3e772d283e6a35839574d39fa183fa8ed0dbb87beb71e2412fe1918f814d4ad50bb2001a6d0afb2c98bbce25b1d516896fa431853965812000be23e6303955802b8c503385837aaf3a84459d99d426d2723d63a20d74c2c91afafcce1aa44c1faaaa5f088da984c557cd591fa0e8bd3ef31ad1c128b1e21e19032fd9c419d73a070165530851f8ddbfab0c6a0ee795428bbbe6ef74cbd2c99ffe15922ee1a3b9ae82e99d5783ad1d3804b5df5ececa5898a58167a426f0ff534a7c85ca4603eb202f5e6ee2993b5bf74ea2fd930687946ff421e0ed8b40f881fb309f422e050f35184f65e4f719c2f0fb8a68ee5de10fc474532d00c2122657efdc65431f313ec8d02ed8f017b9bb14fff3910dfc58f78c5f8f17f32ca1c8fb4abbcb1978e8c5f1d783025eb19fb8580e4f50bb3755136ff1a2c0ac903296bb6136ecf03ba35e23496dfd4d77b728532cb5b41ba46fc489926ddb5951a26b82e74bf0fd684b4f4a1c4728eedece37c52a970f30e5915fb931d804014992ba09392b14eca34c6a8e3915dac6afc2ef43041ec6691f4c7769bf230b9016614391af4f7d9df348ee7a0005c110e0563a65073f5f7383abc98912d8e249e3a13e0242be684a69ebe87cf7da07ede3ba9fd7041db88f3cba0469bd3b582393a9e"
+}
+
+fun malformed_proof(): vector<u8> {
+    let mut bytes = proof();
+    *&mut bytes[0] = 0;
+    bytes
+}
+
+fun proof_shplonk(): vector<u8> {
+    x"92958eeb7e7ea2bcf05806221c0b71b6bb7df5d399c845a15441950bfde594a2326a5f02355ebe69ea546d79c9e89cbc559a1353869f06ad1c5c20a2918570290af9170dd4c3905af9db9dda9291766b803001694313e43e0a144eae46dab2a749175bd1fbc6597cf26d47faea0070c40a20aefaa79cf4c4c7a9cf599fcfd907b0be5b6abb8781dc8a5ce32b12fb113bf9f094b88544c2868ca90e2b9bb25027dfdc033b8233e2bb95fcf573d3c44d3ae1098ee7301ab5e0fe04737c094f4f2812680b7fe973ac056403bfe4e390df8fdf7242aabf8c98951804f1ca86f8a98f034090a1404c4e3e46ec66378e8396e529a458ef4c2df645f4851ff81778f92f5710bd08a962f094e056dab3a8997d1b71e3294157b3a608e3bfe5be09263927ba1b6f0f45977fee8ca4b4f6e4c952ce751e4ccec874207a05a0bcdd25d6228bfb23ff4e5e85f49a54f00a19e37c561399efcb33dea2a1ca436d535e37e1b8064d01ac3fa3e61e3be115d0590b00eda0497628b2db1f377a713becca3afa6405f79640efb9b023e675056c9b1e559de490cbf2af8da39e2db91d01b77b5d6402293868623e5e99ffa1cd6c3e1a410d7d9813ecb577f12290d74130ac4792e01b939dc743e527906747a38fc401bee1eabaadf0a453c27e386d0aec3024a94303f4d1eb2043763044eff4cd1c263b4b823203989050164fcdaed5b62a72743208207f2290a7c204433f4bbb8ff4f5add972432a4d23ded580c37aa1fdd943850af82af1c3a5e2384fbdacb39d6c2341c8a283e1610646479b0fd14acbd26e3411ba6e87981b59b05fcbbe6cfd55d1b3c166f8434cae2a976257fc030b6bf53d069a94a54d253ae0f271c9c6090b50f6e8e0c9bd05187eec0cb0df43f3c1f93b2a53c06bfc404943165aeb4d430a55d0c43696f77080bb95f76b8ceb6dbb74b116fda90e5ba270effa5c0310538550357515c30338b3f0b0d5a04aa538b45758102730d127185c2cf6a2d30faf0f7e35f6580894148ee1b22085f748e0619a361a71871258f94889cf81bcb0ab580541ab26b81ac664e41af4a76babb8e645150195c27f58eb6dbcc34ee690bf2f23b02d3df1437ff8f583d9cf64fea4ef2f8203f6e22b794092d0ff3d540b7d607e661f8e37e91777d1c315470a1941dec237009931329189cde2ff82e98ef5e692f9a9bbe09712d54094f905a06cc59dccc6263e4a40a8c2e1b3c38b5450c3592673250d09cf61f8cf906512801fe87abf9a287baefeea03b07256761986ab93d94250a1c9d0644ef5f8e7b9025399fde6eb055dfed8caa796098a4947c7b10aa2cf0cd128dd1b8cb833ddcbb8615aeb99c7048652402f6102b02083ebabdb97a17e1ca91a638a38f08ed32169d5daf70e570b75fd543fe40647785fcd1522f77426fa1eb2ac4b0f975148dc5d5f04319b8220"
 }
 
 fun append_in_two_chunks(
