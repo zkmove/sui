@@ -6392,7 +6392,6 @@ dependencies = [
 [[package]]
 name = "halo2"
 version = "1.0.0"
-source = "git+https://github.com/zkmove/halo2-verifier.move?rev=b0a4234701ceb9029e7cdb43066b918da15f095b#b0a4234701ceb9029e7cdb43066b918da15f095b"
 dependencies = [
  "halo2_backend",
  "halo2_proofs",
@@ -6403,7 +6402,6 @@ dependencies = [
 [[package]]
 name = "halo2-verifier"
 version = "1.0.0"
-source = "git+https://github.com/zkmove/halo2-verifier.move?rev=b0a4234701ceb9029e7cdb43066b918da15f095b#b0a4234701ceb9029e7cdb43066b918da15f095b"
 dependencies = [
  "anyhow",
  "ark-bn254",
@@ -6429,7 +6427,6 @@ dependencies = [
 [[package]]
 name = "halo2_backend"
 version = "0.4.0"
-source = "git+https://github.com/zkmove/halo2.git?branch=zkmove#87c09bf5c160127b3bcf2a53df66db3cf6e309d6"
 dependencies = [
  "blake2b_simd",
  "ff 0.13.0",
@@ -6446,7 +6443,6 @@ dependencies = [
 [[package]]
 name = "halo2_frontend"
 version = "0.4.0"
-source = "git+https://github.com/zkmove/halo2.git?branch=zkmove#87c09bf5c160127b3bcf2a53df66db3cf6e309d6"
 dependencies = [
  "blake2b_simd",
  "ff 0.13.0",
@@ -6459,7 +6455,6 @@ dependencies = [
 [[package]]
 name = "halo2_middleware"
 version = "0.4.0"
-source = "git+https://github.com/zkmove/halo2.git?branch=zkmove#87c09bf5c160127b3bcf2a53df66db3cf6e309d6"
 dependencies = [
  "ff 0.13.0",
  "halo2curves",
@@ -6469,7 +6464,6 @@ dependencies = [
 [[package]]
 name = "halo2_proofs"
 version = "0.4.0"
-source = "git+https://github.com/zkmove/halo2.git?branch=zkmove#87c09bf5c160127b3bcf2a53df66db3cf6e309d6"
 dependencies = [
  "group 0.13.0",
  "halo2_backend",
@@ -19340,7 +19334,6 @@ checksum = "051eb1abcf10076295e815102942cc58f9d5e3b4560e46e53c21e8ff6f3af7b1"
 [[package]]
 name = "vk-gen-examples"
 version = "1.0.0"
-source = "git+https://github.com/zkmove/halo2-verifier.move?rev=b0a4234701ceb9029e7cdb43066b918da15f095b#b0a4234701ceb9029e7cdb43066b918da15f095b"
 dependencies = [
  "anyhow",
  "halo2",

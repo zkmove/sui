@@ -12,13 +12,17 @@ use move_vm_runtime::{
     pop_arg,
 };
 use smallvec::smallvec;
-use std::{collections::VecDeque, fmt::Display, panic::AssertUnwindSafe};
+use std::collections::VecDeque;
+#[cfg(panic = "unwind")]
+use std::panic::AssertUnwindSafe;
 
 pub const E_INPUT_TOO_LARGE: u64 = 1000;
 pub const E_INVALID_NATIVE_ARGUMENT: u64 = 1001;
 pub const E_NOT_SUPPORTED: u64 = 1002;
 pub const E_VERIFIER_INPUT_ERROR: u64 = 1003;
 pub const E_VERIFIER_PANICKED: u64 = 1004;
+pub const E_VERIFIER_UNSUPPORTED_CONFIG: u64 = 1005;
+pub const E_VERIFIER_INTERNAL_ERROR: u64 = 1006;
 
 pub const KZG_GWC: u8 = 0;
 pub const KZG_SHPLONK: u8 = 1;
@@ -184,7 +188,17 @@ fn verify_halo2_kzg(inputs: NativeVerifyInputs<'_>) -> VerifyOutcome {
         return VerifyOutcome::Invalid;
     }
 
-    match std::panic::catch_unwind(AssertUnwindSafe(|| {
+    match invoke_halo2_verifier(&inputs) {
+        Ok(Ok(())) => VerifyOutcome::Valid,
+        Ok(Err(err)) => classify_verifier_error(err),
+        Err(_) => VerifyOutcome::Abort(E_VERIFIER_PANICKED),
+    }
+}
+
+fn invoke_halo2_verifier(
+    inputs: &NativeVerifyInputs<'_>,
+) -> Result<Result<(), halo2_verifier::error::VerifyError>, ()> {
+    let verify = || {
         halo2_verifier::deserialize_circuit_and_verify(
             inputs.params,
             inputs.vk,
@@ -194,20 +208,34 @@ fn verify_halo2_kzg(inputs: NativeVerifyInputs<'_>) -> VerifyOutcome {
             inputs.kzg_variant,
             inputs.k,
         )
-    })) {
-        Ok(Ok(())) => VerifyOutcome::Valid,
-        Ok(Err(err)) => classify_verifier_error(err),
-        Err(_) => VerifyOutcome::Abort(E_VERIFIER_PANICKED),
+    };
+
+    // In Sui's release profile panic=abort means catch_unwind cannot be a safety boundary. It is
+    // kept only as a debug/unwind-profile diagnostic fallback while the verifier path itself must
+    // remain panic-free for malformed transaction input.
+    #[cfg(panic = "unwind")]
+    {
+        std::panic::catch_unwind(AssertUnwindSafe(verify)).map_err(|_| ())
+    }
+
+    #[cfg(not(panic = "unwind"))]
+    {
+        Ok(verify())
     }
 }
 
-fn classify_verifier_error(err: impl Display) -> VerifyOutcome {
-    let message = err.to_string();
-    // The upstream verifier currently wraps mathematical verification failures with this prefix.
-    if message.contains("Verification failed") {
-        VerifyOutcome::Invalid
-    } else {
-        VerifyOutcome::Abort(E_VERIFIER_INPUT_ERROR)
+fn classify_verifier_error(err: halo2_verifier::error::VerifyError) -> VerifyOutcome {
+    match err {
+        halo2_verifier::error::VerifyError::InvalidProof(_) => VerifyOutcome::Invalid,
+        halo2_verifier::error::VerifyError::MalformedInput(_) => {
+            VerifyOutcome::Abort(E_VERIFIER_INPUT_ERROR)
+        }
+        halo2_verifier::error::VerifyError::UnsupportedConfig(_) => {
+            VerifyOutcome::Abort(E_VERIFIER_UNSUPPORTED_CONFIG)
+        }
+        halo2_verifier::error::VerifyError::Internal(_) => {
+            VerifyOutcome::Abort(E_VERIFIER_INTERNAL_ERROR)
+        }
     }
 }
 
@@ -255,6 +283,8 @@ mod tests {
             E_NOT_SUPPORTED,
             E_VERIFIER_INPUT_ERROR,
             E_VERIFIER_PANICKED,
+            E_VERIFIER_UNSUPPORTED_CONFIG,
+            E_VERIFIER_INTERNAL_ERROR,
         ] {
             assert!(code >= 1000);
         }
@@ -268,27 +298,27 @@ mod tests {
 
         assert_eq!(
             parse_move_u64_const(MOVE_SOURCE, "MAX_PARAMS_BYTES"),
-            MAX_PARAMS_BYTES as u64
+            Ok(MAX_PARAMS_BYTES as u64)
         );
         assert_eq!(
             parse_move_u64_const(MOVE_SOURCE, "MAX_VK_BYTES"),
-            MAX_VK_BYTES as u64
+            Ok(MAX_VK_BYTES as u64)
         );
         assert_eq!(
             parse_move_u64_const(MOVE_SOURCE, "MAX_CIRCUIT_INFO_BYTES"),
-            MAX_CIRCUIT_INFO_BYTES as u64
+            Ok(MAX_CIRCUIT_INFO_BYTES as u64)
         );
         assert_eq!(
             parse_move_u64_const(MOVE_SOURCE, "MAX_PROOF_BYTES"),
-            MAX_PROOF_BYTES as u64
+            Ok(MAX_PROOF_BYTES as u64)
         );
         assert_eq!(
             parse_move_u64_const(MOVE_SOURCE, "MAX_PUBLIC_INPUTS_BYTES"),
-            MAX_PUBLIC_INPUT_BYTES as u64
+            Ok(MAX_PUBLIC_INPUT_BYTES as u64)
         );
         assert_eq!(
             parse_move_u64_const(MOVE_SOURCE, "HALO2_PUBLIC_INPUT_SCALAR_BYTES"),
-            HALO2_PUBLIC_INPUT_SCALAR_BYTES as u64
+            Ok(HALO2_PUBLIC_INPUT_SCALAR_BYTES as u64)
         );
     }
 
@@ -409,7 +439,7 @@ mod tests {
 
         assert!(matches!(
             verify_halo2_kzg(inputs),
-            VerifyOutcome::Abort(E_VERIFIER_INPUT_ERROR)
+            VerifyOutcome::Abort(E_VERIFIER_UNSUPPORTED_CONFIG)
         ));
     }
 
@@ -478,6 +508,50 @@ mod tests {
     }
 
     #[test]
+    fn malformed_params_with_matching_digest_aborts_without_panic() {
+        let fixture = vector_mul_fixture();
+        let malformed_params = [0xff, 0x00, 0x00, 0x00];
+
+        let outcome = verify_halo2_kzg(test_inputs(
+            &malformed_params,
+            &digest(&malformed_params),
+            &fixture.vk,
+            &digest(&fixture.vk),
+            &fixture.circuit_info,
+            &digest(&fixture.circuit_info),
+            &fixture.public_inputs,
+            &fixture.proof,
+        ));
+
+        assert!(matches!(
+            outcome,
+            VerifyOutcome::Abort(E_VERIFIER_INPUT_ERROR)
+        ));
+    }
+
+    #[test]
+    fn malformed_public_inputs_with_matching_digest_aborts_without_panic() {
+        let fixture = vector_mul_fixture();
+        let malformed_public_inputs = vec![0xff; 32];
+
+        let outcome = verify_halo2_kzg(test_inputs(
+            &fixture.params,
+            &digest(&fixture.params),
+            &fixture.vk,
+            &digest(&fixture.vk),
+            &fixture.circuit_info,
+            &digest(&fixture.circuit_info),
+            &malformed_public_inputs,
+            &fixture.proof,
+        ));
+
+        assert!(matches!(
+            outcome,
+            VerifyOutcome::Abort(E_VERIFIER_INPUT_ERROR)
+        ));
+    }
+
+    #[test]
     fn oversized_proof_aborts() {
         let params = [];
         let vk = [];
@@ -525,7 +599,12 @@ mod tests {
 
             assert!(matches!(
                 outcome,
-                VerifyOutcome::Abort(E_VERIFIER_INPUT_ERROR | E_VERIFIER_PANICKED)
+                VerifyOutcome::Abort(
+                    E_VERIFIER_INPUT_ERROR
+                        | E_VERIFIER_UNSUPPORTED_CONFIG
+                        | E_VERIFIER_INTERNAL_ERROR
+                        | E_VERIFIER_PANICKED
+                )
             ));
         }
     }
@@ -665,21 +744,21 @@ mod tests {
         }
     }
 
-    fn parse_move_u64_const(source: &str, name: &str) -> u64 {
+    fn parse_move_u64_const(source: &str, name: &str) -> Result<u64, String> {
         let prefix = format!("const {name}: u64 = ");
         let expression = source
             .lines()
             .find_map(|line| line.trim().strip_prefix(&prefix))
             .and_then(|line| line.strip_suffix(';'))
-            .unwrap_or_else(|| panic!("missing Move const {name}"));
+            .ok_or_else(|| format!("missing Move const {name}"))?;
 
         expression
             .split('*')
             .map(|part| {
                 part.trim()
                     .parse::<u64>()
-                    .unwrap_or_else(|_| panic!("invalid Move const {name}: {expression}"))
+                    .map_err(|_| format!("invalid Move const {name}: {expression}"))
             })
-            .product()
+            .product::<Result<u64, _>>()
     }
 }

@@ -8,6 +8,8 @@ exclude = [
   "examples/rust/basic-sui-indexer",
   "examples/rust/clickhouse-sui-indexer",
   "examples/rust/walrus-attributes-indexer",
+  "external-crates/zkmove/halo2",
+  "external-crates/zkmove/halo2-verifier.move",
   "external-crates/move/crates/jsonrpc",
   "external-crates/move/crates/bytecode-interpreter-crypto",
   "external-crates/move/crates/bytecode-verifier-libfuzzer",
@@ -777,3 +779,11 @@ async-graphql = { git = "https://github.com/amnn/async-graphql", branch = "v7.0.
 async-graphql-axum = { git = "https://github.com/amnn/async-graphql", branch = "v7.0.1-react-18-graphiql-4" }
 async-graphql-value = { git = "https://github.com/amnn/async-graphql", branch = "v7.0.1-react-18-graphiql-4" }
 
+[patch."https://github.com/zkmove/halo2-verifier.move"]
+halo2-verifier = { path = "../halo2-verifier.move/crates/halo2-verifier" }
+
+[patch."https://github.com/zkmove/halo2.git"]
+halo2_backend = { path = "../halo2/halo2_backend" }
+halo2_frontend = { path = "../halo2/halo2_frontend" }
+halo2_middleware = { path = "../halo2/halo2_middleware" }
+halo2_proofs = { path = "../halo2/halo2_proofs" }
